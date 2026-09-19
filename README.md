@@ -1,5 +1,7 @@
 # AI Interview Prep Kit - frontend
 
+[![CI](https://github.com/itsskofficial/trao-interview-prep-kit-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/itsskofficial/trao-interview-prep-kit-frontend/actions/workflows/ci.yml)
+
 The interface for [trao-interview-prep-kit-backend](https://github.com/itsskofficial/trao-interview-prep-kit-backend): Next.js (App Router), Tailwind CSS and TypeScript.
 
 > Work in progress. This README is completed in the final ticket.
