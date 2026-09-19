@@ -11,24 +11,23 @@ test("capture the main screens", async ({ page }) => {
   await shot("01-login");
   await register(page);
   await shot("02-empty");
-  await page.goto("/new");
-  await shot("03-new");
-  await page.getByLabel("Job description").fill("Senior Backend Engineer\n\nRequirements\n- 5+ years with Node.js\n- PostgreSQL");
-  await page.getByLabel("Company website").fill("http://localhost:8099/acme/");
-  await page.getByRole("button", { name: "Generate kit" }).click();
-  await page.waitForURL(/\/jobs\//);
-  await page.waitForTimeout(600);
-  await shot("04-progress");
-  await page.waitForURL(/\/kits\//, { timeout: 45_000 });
-  await page.waitForTimeout(800);
-  await shot("05-kit");
-  await page.goto("/");
-  await page.waitForTimeout(500);
-  await shot("06-list");
+  await createKit(page);
+  await page.getByRole("heading", { name: "Company brief" }).waitFor();
+  await shot("05-kit-overview");
+
+  for (const tab of ["Questions", "Flashcards", "Schedule", "Practice"]) {
+    await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+    await page.waitForTimeout(500);
+    await shot(`06-kit-${tab.toLowerCase()}`);
+  }
+
+  await page.getByRole("button", { name: /Start practising/ }).click();
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(200);
+  await shot("07-practice-revealed");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await shot("07-list-phone");
-  await page.goto("/new");
-  await shot("08-new-phone");
-  void createKit;
+  await page.getByRole("tab", { name: /^Questions/ }).click();
+  await page.waitForTimeout(400);
+  await shot("08-questions-phone");
 });
