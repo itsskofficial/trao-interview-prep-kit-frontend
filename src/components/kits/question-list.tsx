@@ -106,7 +106,7 @@ function QuestionItem({ question, position, total, requirements, actions, beingR
         </div>
 
         <div className="min-w-0 flex-1 space-y-1">
-          <EditableText label={`Prompt of ${name}`} value={question.prompt} maxLength={2000} onChange={(prompt) => actions.editQuestion(question.id, { prompt })} className="font-medium text-slate-900" />
+          <EditableText required label={`Prompt of ${name}`} value={question.prompt} maxLength={2000} onChange={(prompt) => actions.editQuestion(question.id, { prompt })} className="font-medium text-slate-900" />
           <EditableText
             label={`Answer outline of ${name}`}
             value={question.answer_outline}

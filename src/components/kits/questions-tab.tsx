@@ -1,14 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { ApiError } from "@/lib/api";
 import type { KitEditor } from "@/lib/kit-editor";
 import { CATEGORIES, isProtected, type Question, type QuestionCategory } from "@/lib/types";
 import { Alert, Button, Card, EmptyState, Field, Input, Spinner, Textarea } from "../ui/primitives";
 import { QuestionList } from "./question-list";
 import { RegenerateButton, UndoToast } from "./regenerate";
-
-const UNDO_WINDOW_MS = 6_000;
 
 /** The question named in the URL (#question-q3), if any. Client-side navigation does not set :target, so it is read directly. */
 function useLinkedQuestionId(): string | undefined {
@@ -24,49 +22,68 @@ function useLinkedQuestionId(): string | undefined {
 }
 
 /**
- * Deleting hides the question at once and tells the server a few seconds later, so "Undo" is
- * simply not sending it. Leaving the page sends whatever is still pending.
+ * Deleting hides the question at once and tells the server only when the undo window closes, so
+ * "Undo" is simply not sending it. The toast owns the countdown (and pauses it while it has focus).
+ * Anything that would make the hidden question matter settles the delete first: another delete, a
+ * reorder, a move, an add, a regeneration, switching tab, leaving the page.
  */
 function useDeferredDelete(commit: (id: string) => void) {
   const [pending, setPending] = useState<Question | null>(null);
-  const waiting = useRef<{ question: Question; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const [paused, setPaused] = useState(false);
+  const waiting = useRef<Question | null>(null);
 
   /** Sends the delete that is waiting, if there is one. */
   const flush = useCallback(() => {
     if (!waiting.current) return;
-    clearTimeout(waiting.current.timer);
-    commit(waiting.current.question.id);
+    commit(waiting.current.id);
     waiting.current = null;
+    setPending(null);
+    setPaused(false);
   }, [commit]);
 
   const remove = useCallback(
     (question: Question) => {
-      flush(); // a second delete settles the first
-      const timer = setTimeout(() => {
-        flush();
-        setPending(null);
-      }, UNDO_WINDOW_MS);
-      waiting.current = { question, timer };
+      flush();
+      waiting.current = question;
       setPending(question);
     },
     [flush],
   );
 
   const undo = useCallback(() => {
-    if (waiting.current) clearTimeout(waiting.current.timer);
     waiting.current = null;
     setPending(null);
+    setPaused(false);
   }, []);
 
-  // Switching tab or leaving the page inside the undo window still deletes.
-  useEffect(() => flush, [flush]);
+  useEffect(() => {
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
 
-  return { hiddenId: pending?.id, pending, remove, undo, settle: useCallback(() => setPending(null), []) };
+  return { hiddenId: pending?.id, pending, paused, setPaused, remove, undo, flush };
 }
 
 export function QuestionsTab({ editor }: { editor: KitEditor }) {
   const { kit, stored, actions } = editor;
   const deletion = useDeferredDelete(actions.deleteQuestion);
+  const { flush } = deletion;
+
+  // While a delete is waiting, the list on screen is one question shorter than the kit. Anything that
+  // depends on the list settles the delete first, so the server is never sent an order it would refuse.
+  const settled = useMemo(
+    () => ({
+      ...actions,
+      reorderQuestions: (...args: Parameters<typeof actions.reorderQuestions>) => (flush(), actions.reorderQuestions(...args)),
+      moveQuestion: (...args: Parameters<typeof actions.moveQuestion>) => (flush(), actions.moveQuestion(...args)),
+      addQuestion: (...args: Parameters<typeof actions.addQuestion>) => (flush(), actions.addQuestion(...args)),
+      regenerate: (...args: Parameters<typeof actions.regenerate>) => (flush(), actions.regenerate(...args)),
+    }),
+    [actions, flush],
+  );
   const loaded = kit !== null;
   const linkedId = useLinkedQuestionId();
 
@@ -106,7 +123,7 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
                   keep={keep}
                   disabled={Boolean(running) || blocked}
                   disabledReason={blocked ? "Nothing is known about the company, so company-fit questions cannot be generated honestly." : "Another section is being regenerated."}
-                  onConfirm={() => actions.regenerate({ section: "questions", category })}
+                  onConfirm={() => settled.regenerate({ section: "questions", category })}
                 />
               </div>
             </header>
@@ -116,14 +133,14 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
                 {blocked ? "Nothing about the company could be retrieved, so none were generated. You can still add your own." : "Add your own below, or regenerate this category."}
               </EmptyState>
             ) : (
-              <QuestionList category={category} questions={questions} requirements={kit.role.requirements} actions={actions} regenerating={regenerating} highlightId={linkedId} onDelete={deletion.remove} />
+              <QuestionList category={category} questions={questions} requirements={kit.role.requirements} actions={settled} regenerating={regenerating} highlightId={linkedId} onDelete={deletion.remove} />
             )}
-            <AddQuestion category={category} label={label} onAdd={actions.addQuestion} />
+            <AddQuestion category={category} label={label} onAdd={settled.addQuestion} />
           </section>
         );
       })}
 
-      {deletion.pending && <UndoToast key={deletion.pending.id} message="Question deleted." onUndo={deletion.undo} onDone={deletion.settle} />}
+      {deletion.pending && <UndoToast key={deletion.pending.id} message="Question deleted." onUndo={deletion.undo} onDone={deletion.flush} paused={deletion.paused} onPauseChange={deletion.setPaused} />}
     </div>
   );
 }

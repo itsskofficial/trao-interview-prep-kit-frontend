@@ -55,15 +55,24 @@ function trackSlowness(): () => void {
 
 // ---- expired sessions: any 401 outside the auth screens sends the user to sign in, and back again afterwards ----
 
+let leaving = false;
+
 function redirectToLogin(code: string): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || leaving) return;
   const { pathname, search } = window.location;
   if (pathname === "/login" || pathname === "/register") return;
   const params = new URLSearchParams({ next: pathname + search });
   if (code === "SESSION_EXPIRED") params.set("reason", "expired");
-  // A full page load on purpose: it drops every piece of client state that belonged to the old session.
-  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-  window.location.assign(`/login?${params}`);
+  leaving = true; // several requests can fail at once; one trip to sign in is enough
+  // The route guard only sees that a session cookie exists, so a cookie the server has stopped accepting
+  // must be cleared first or the guard would send the visitor straight back here, forever.
+  void fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
+    .catch(() => undefined)
+    .finally(() => {
+      // A full page load on purpose: it drops every piece of client state that belonged to the old session.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(`/login?${params}`);
+    });
 }
 
 export interface RequestOptions {

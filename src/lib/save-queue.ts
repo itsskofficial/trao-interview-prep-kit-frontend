@@ -46,11 +46,15 @@ export class SaveQueue {
   enqueue(op: KitOp, options: { typing?: boolean } = {}): void {
     const notBefore = options.typing ? Date.now() + TYPING_PAUSE_MS : 0;
     const key = coalesceKey(op);
-    // The entry at the front may already be on its way, so only entries behind it can be merged into.
-    const from = this.sending ? 1 : 0;
-    const index = key ? this.pending.findIndex((entry, position) => position >= from && coalesceKey(entry.op) === key) : -1;
-    if (index >= 0) this.pending[index] = { op: mergeOps(this.pending[index]!.op, op), notBefore };
-    else this.pending.push({ op, notBefore });
+    // Only the newest waiting entry can absorb a change, and not if it is already on its way. Merging into
+    // an older entry would send this change ahead of whatever was done in between.
+    const last = this.pending.length - 1;
+    const inFlight = this.sending && last === 0;
+    if (key && last >= 0 && !inFlight && coalesceKey(this.pending[last]!.op) === key) {
+      this.pending[last] = { op: mergeOps(this.pending[last]!.op, op), notBefore };
+    } else {
+      this.pending.push({ op, notBefore });
+    }
     this.handlers.onState("unsaved", null);
     void this.pump();
   }

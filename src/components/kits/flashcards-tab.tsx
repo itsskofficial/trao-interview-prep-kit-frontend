@@ -27,7 +27,7 @@ export function FlashcardsTab({ editor }: { editor: KitEditor }) {
             return (
               <li key={card.id}>
                 <Card className="flex h-full flex-col p-4">
-                  <EditableText label={`Front of ${name}`} value={card.front} maxLength={500} onChange={(front) => actions.editFlashcard(card.id, { front })} className="font-medium text-slate-900" />
+                  <EditableText required label={`Front of ${name}`} value={card.front} maxLength={500} onChange={(front) => actions.editFlashcard(card.id, { front })} className="font-medium text-slate-900" />
                   <EditableText label={`Back of ${name}`} value={card.back} maxLength={3000} placeholder="The answer..." onChange={(back) => actions.editFlashcard(card.id, { back })} className="text-sm text-slate-700" />
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
                     <ProvenanceBadges item={card} />

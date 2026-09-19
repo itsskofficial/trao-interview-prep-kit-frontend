@@ -54,7 +54,11 @@ export function PracticeTab({ kitId, kit }: { kitId: string; kit: Kit }) {
   useEffect(() => {
     if (!current) return;
     function onKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+      // The shortcuts belong to the card. A key pressed on a control, with a modifier, or while a dialog is
+      // open means something else, and must reach what it was meant for.
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (document.querySelector("dialog[open]")) return;
+      if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, button, a, summary, [role=tab]")) return;
       if (!revealed && (event.key === " " || event.key === "Enter")) {
         event.preventDefault();
         setRevealed(true);

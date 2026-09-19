@@ -12,12 +12,13 @@ const WEEK = 7;
 export function ScheduleTab({ kitId, editor }: { kitId: string; editor: KitEditor }) {
   const { kit, actions } = editor;
   const practice = useSWR<PracticeOverview, ApiError>(`/kits/${kitId}/practice`, fetcher, { revalidateOnFocus: false });
-  const [fromDay, setFromDay] = useState(1);
+  const [fromDayText, setFromDayText] = useState("1");
   const [busy, setBusy] = useState<"replan" | "reset" | null>(null);
   const [error, setError] = useState<string | null>(null);
   if (!kit) return null;
 
   const { days, days_available: total, replan } = kit.schedule;
+  const fromDay = Math.max(1, Math.min(total, Math.trunc(Number(fromDayText)) || 1));
   const prompts = new Map(kit.questions.map((question) => [question.id, question.prompt]));
   const focus = new Set(replan?.focus_question_ids ?? []);
   const weakSpots = practice.data?.weak_spots ?? [];
@@ -67,8 +68,9 @@ export function ScheduleTab({ kitId, editor }: { kitId: string; editor: KitEdito
                   type="number"
                   min={1}
                   max={total}
-                  value={fromDay}
-                  onChange={(event) => setFromDay(Math.max(1, Math.min(total, Number(event.target.value) || 1)))}
+                  value={fromDayText}
+                  onChange={(event) => setFromDayText(event.target.value)}
+                  onBlur={() => setFromDayText(String(fromDay))}
                   className="ml-2 h-10 w-20 rounded-md border border-slate-300 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 />
               </label>

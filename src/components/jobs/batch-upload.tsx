@@ -47,6 +47,8 @@ export function BatchUpload() {
       if (!Array.isArray(parsed)) return setFileError("The file must contain a JSON array of cases.");
       if (parsed.length === 0) return setFileError("The file has no cases in it.");
       if (parsed.length > MAX_CASES) return setFileError(`The file has ${parsed.length} cases. Upload at most ${MAX_CASES} at a time.`);
+      const notObject = parsed.findIndex((entry) => typeof entry !== "object" || entry === null || Array.isArray(entry));
+      if (notObject !== -1) return setFileError(`Entry ${notObject + 1} is not a case. Each entry must be an object with jd, company_url and days.`);
       setCases(parsed as CaseDraft[]);
     } catch {
       setFileError("That file is not valid JSON.");

@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import { LogoMark } from "./ui/logo";
 import { Alert, Button, Field, Input } from "./ui/primitives";
+import { ServerWakingNotice } from "./ui/server-waking";
 
 const COPY = {
   login: { title: "Welcome back", submit: "Sign in", path: "/auth/login", other: { href: "/register", prompt: "No account yet?", label: "Create one" } },
@@ -20,9 +21,19 @@ const STEPS = [
   { title: "Follows your progress", body: "Practice finds your weak spots and re-plans the days you have left around them." },
 ];
 
-/** Only ever send the user to a path on this site, never to wherever a link told us to. */
+/**
+ * Only ever send the user to a path on this site, never to wherever a link told us to. The value is
+ * resolved exactly as the browser would resolve it and accepted only if it stays on this origin:
+ * a prefix check is not enough, because browsers read "/\\evil.com" as "//evil.com".
+ */
 function safeNext(next: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  if (!next) return "/";
+  try {
+    const target = new URL(next, window.location.origin);
+    return target.origin === window.location.origin ? target.pathname + target.search + target.hash : "/";
+  } catch {
+    return "/";
+  }
 }
 
 export function AuthForm({ mode }: { mode: keyof typeof COPY }) {
@@ -54,6 +65,10 @@ export function AuthForm({ mode }: { mode: keyof typeof COPY }) {
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
+      {/* Signing in is often the first request to a sleeping server, so the notice belongs here too. */}
+      <div className="fixed inset-x-0 top-0 z-40">
+        <ServerWakingNotice />
+      </div>
       {/* The pitch. Hidden on small screens, where the form is what matters. */}
       <aside className="relative hidden overflow-hidden bg-slate-950 px-12 py-14 text-white lg:flex lg:flex-col lg:justify-between">
         <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-indigo-500/30 blur-3xl" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import useSWR, { mutate as revalidate } from "swr";
+import useSWR, { mutate as writeCache } from "swr";
 import { api, fetcher, type ApiError } from "./api";
 import { applyLocally, toRequest, type KitOp } from "./kit-ops";
 import { SaveQueue, type SaveState } from "./save-queue";
@@ -9,63 +9,57 @@ import type { Flashcard, Kit, Question, QuestionCategory, StoredKit } from "./ty
 
 const POLL_WHILE_REGENERATING_MS = 2_000;
 
+/** A change that would leave a required field blank stays on screen but is not sent: the server would refuse it and the old text would come back under the cursor. */
+const leavesRequiredFieldBlank = (op: KitOp): boolean =>
+  (op.type === "patchQuestion" && op.patch.prompt !== undefined && op.patch.prompt.trim() === "") ||
+  (op.type === "patchFlashcard" && op.patch.front !== undefined && op.patch.front.trim() === "");
+
 /**
  * The kit as the user sees it, which is always a step ahead of the server.
  *
- * - A change is applied to the local kit immediately and handed to the save queue.
- * - The server's copy replaces the local one only when the queue is idle, so an answer that
- *   arrives late can never overwrite what the user has typed since.
- * - While a section is regenerating, the kit is re-fetched every two seconds, under the same rule.
+ * What is shown is derived, never copied: the server's kit from the shared cache, unless the user has
+ * changes the server has not confirmed yet, in which case their local version (`ahead`). A change is
+ * applied to the local version at once and handed to the save queue. When the queue runs dry, the
+ * server's answer goes into the cache and the local version is dropped, so the two can never drift,
+ * and an answer that arrives while more changes are waiting cannot overwrite them.
  */
 export function useKitEditor(id: string) {
   const key = `/kits/${id}`;
-  const [kit, setKit] = useState<Kit | null>(null);
-  const [stored, setStored] = useState<StoredKit | null>(null);
+  const [ahead, setAhead] = useState<Kit | null>(null);
   const [save, setSave] = useState<{ state: SaveState; error: string | null }>({ state: "saved", error: null });
   const [rejected, setRejected] = useState<string | null>(null);
 
-  // Created once. The handlers need to ask the queue whether it is idle, hence the holder.
+  const { data: stored, error: loadError } = useSWR<StoredKit, ApiError>(key, fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: (latest) => (latest?.regeneration?.status === "running" ? POLL_WHILE_REGENERATING_MS : 0),
+  });
+  const kit = ahead ?? stored?.kit ?? null;
+
+  // Created once. Its handlers need to ask the queue whether it is idle, hence the holder.
   const [{ queue }] = useState(() => {
     const holder = { queue: undefined as unknown as SaveQueue };
-    const acceptAnswer = (latest: StoredKit) => {
-      setStored(latest);
-      if (holder.queue.idle) setKit(latest.kit);
-      // Other screens read this kit from the shared cache (the one-page summary, for one), so keep it current.
-      void revalidate(key, latest, { revalidate: false });
+    const settle = () => {
+      if (holder.queue.idle) setAhead(null);
     };
     holder.queue = new SaveQueue({
       send: (op) => {
         const request = toRequest(op);
         return api<StoredKit>(`${key}${request.path}`, { method: request.method, body: request.body });
       },
-      onAnswer: acceptAnswer,
+      onAnswer: (answer) => void writeCache(key, answer, { revalidate: false }).then(settle),
       onState: (state, error) => setSave({ state, error }),
       onRejected: (message) => {
         setRejected(message);
-        void revalidate(key);
+        void writeCache(key).then(settle);
       },
     });
     return holder;
   });
 
-  const accept = useCallback(
-    (latest: StoredKit) => {
-      setStored(latest);
-      if (queue.idle) setKit(latest.kit);
-    },
-    [queue],
-  );
-
-  const { error: loadError } = useSWR<StoredKit, ApiError>(key, fetcher, {
-    revalidateOnFocus: false,
-    refreshInterval: (latest) => (latest?.regeneration?.status === "running" ? POLL_WHILE_REGENERATING_MS : 0),
-    onSuccess: accept,
-  });
-
-  // Leaving the page: send whatever was still waiting for a pause in typing, in order, and then
-  // refresh the shared cache so the next screen does not show the kit from before those changes.
-  useEffect(
-    () => () => {
+  // Leaving, by navigating or by closing the tab: send whatever was still waiting for a pause in typing,
+  // in order, then refresh the cache so the next screen does not show the kit from before those changes.
+  useEffect(() => {
+    const sendWaiting = () => {
       const ops = queue.drain();
       if (ops.length === 0) return;
       void (async () => {
@@ -79,11 +73,15 @@ export function useKitEditor(id: string) {
             body: JSON.stringify(request.body ?? {}),
           }).catch(() => undefined);
         }
-        await revalidate(key);
+        await writeCache(key);
       })();
-    },
-    [key, queue],
-  );
+    };
+    window.addEventListener("pagehide", sendWaiting);
+    return () => {
+      window.removeEventListener("pagehide", sendWaiting);
+      sendWaiting();
+    };
+  }, [key, queue]);
 
   // Warn before closing the tab with unsaved work.
   useEffect(() => {
@@ -93,24 +91,25 @@ export function useKitEditor(id: string) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [save.state]);
 
+  const base = stored?.kit;
   const dispatch = useCallback(
     (op: KitOp, options: { typing?: boolean } = {}) => {
-      setKit((current) => (current ? applyLocally(current, op) : current));
-      queue.enqueue(op, options);
+      if (!base) return;
+      setAhead((current) => applyLocally(current ?? base, op));
+      if (!leavesRequiredFieldBlank(op)) queue.enqueue(op, options);
     },
-    [queue],
+    [queue, base],
   );
 
   /** Requests that need the server's answer before anything can be shown (a new id, a started regeneration). */
   const request = useCallback(
     async (path: string, body?: unknown): Promise<StoredKit> => {
       const answer = await api<StoredKit>(`${key}${path}`, { method: "POST", body });
-      accept(answer);
-      // Tell the fetcher too, so it starts polling if a regeneration has just begun.
-      void revalidate(key, answer, { revalidate: false });
+      await writeCache(key, answer, { revalidate: false });
+      if (queue.idle) setAhead(null);
       return answer;
     },
-    [key, accept],
+    [key, queue],
   );
 
   const actions = useMemo(
@@ -132,14 +131,14 @@ export function useKitEditor(id: string) {
       replan: (fromDay: number) => request("/practice/replan", { from_day: fromDay }),
       retrySave: () => queue.retry(),
       dismissRejected: () => setRejected(null),
-      reload: () => void revalidate(key),
+      reload: () => void writeCache(key),
     }),
     [dispatch, request, queue, key],
   );
 
   return {
     kit,
-    stored,
+    stored: stored ?? null,
     loadError: loadError ?? null,
     saveState: save.state,
     saveError: save.error,

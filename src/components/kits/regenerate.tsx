@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import { Alert, Button } from "../ui/primitives";
 
@@ -24,6 +24,7 @@ interface RegenerateButtonProps {
  */
 export function RegenerateButton({ what, label = "Regenerate", replace, keep, warning, disabled, disabledReason, onConfirm }: RegenerateButtonProps) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const reasonId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +43,12 @@ export function RegenerateButton({ what, label = "Regenerate", replace, keep, wa
 
   return (
     <>
-      <Button size="sm" disabled={disabled} title={disabled ? disabledReason : undefined} onClick={() => dialog.current?.showModal()}>
+      {disabled && disabledReason && (
+        <span id={reasonId} className="sr-only">
+          {disabledReason}
+        </span>
+      )}
+      <Button size="sm" disabled={disabled} title={disabled ? disabledReason : undefined} aria-describedby={disabled && disabledReason ? reasonId : undefined} onClick={() => dialog.current?.showModal()}>
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" />
         </svg>
@@ -80,16 +86,18 @@ export function RegenerateButton({ what, label = "Regenerate", replace, keep, wa
 }
 
 /** Deleting is instant, and for a few seconds it can be taken back. */
-export function UndoToast({ message, onUndo, onDone }: { message: string; onUndo(): void; onDone(): void }) {
+export function UndoToast({ message, onUndo, onDone, paused, onPauseChange }: { message: string; onUndo(): void; onDone(): void; paused?: boolean; onPauseChange?(paused: boolean): void }) {
   useEffect(() => {
+    if (paused) return;
     const timer = setTimeout(onDone, 6_000);
     return () => clearTimeout(timer);
-  }, [onDone]);
+  }, [onDone, paused]);
 
   return (
     <div role="status" className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg print:hidden">
       <span>{message}</span>
-      <button type="button" onClick={onUndo} className="rounded px-2 py-1 font-semibold text-indigo-200 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+      {/* Deleting removed the button that had focus. Focus comes here, and the countdown waits while it stays. */}
+      <button type="button" autoFocus onFocus={() => onPauseChange?.(true)} onBlur={() => onPauseChange?.(false)} onClick={onUndo} className="rounded px-2 py-1 font-semibold text-indigo-200 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
         Undo
       </button>
     </div>
