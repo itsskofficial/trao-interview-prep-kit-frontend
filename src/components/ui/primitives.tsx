@@ -6,8 +6,8 @@ import type { ButtonHTMLAttributes, ComponentProps, InputHTMLAttributes, ReactNo
 const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
 
 const BUTTON_VARIANTS = {
-  primary: "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300",
-  secondary: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 disabled:text-slate-400",
+  primary: "bg-gradient-to-b from-indigo-500 to-indigo-600 text-white shadow-sm shadow-indigo-600/30 hover:from-indigo-500 hover:to-indigo-700 active:translate-y-px disabled:from-indigo-300 disabled:to-indigo-300 disabled:shadow-none",
+  secondary: "border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:translate-y-px disabled:text-slate-400 disabled:shadow-none",
   ghost: "text-slate-700 hover:bg-slate-100 disabled:text-slate-400",
   danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50 disabled:text-red-300",
 } as const;
@@ -25,7 +25,7 @@ export function Button({ variant = "secondary", size = "md", busy = false, class
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition disabled:cursor-not-allowed",
         size === "sm" ? "min-h-8 px-2.5 text-sm" : "min-h-10 px-4 text-sm",
         BUTTON_VARIANTS[variant],
         focusRing,
@@ -40,7 +40,7 @@ export function Button({ variant = "secondary", size = "md", busy = false, class
 }
 
 const fieldBox =
-  "block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400 aria-[invalid=true]:border-red-500 " + focusRing;
+  "block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 aria-[invalid=true]:border-red-500 " + focusRing;
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={clsx(fieldBox, className)} {...rest} />;
@@ -82,7 +82,7 @@ const ALERT_TONES = {
 
 export function Alert({ tone = "info", title, children, action }: { tone?: keyof typeof ALERT_TONES; title?: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={clsx("flex flex-wrap items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm", ALERT_TONES[tone])}>
+    <div role={tone === "error" ? "alert" : "status"} className={clsx("flex animate-rise flex-wrap items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm", ALERT_TONES[tone])}>
       <div className="min-w-0 space-y-1">
         {title && <p className="font-semibold">{title}</p>}
         {children && <div className="leading-relaxed">{children}</div>}
@@ -105,7 +105,7 @@ export function Spinner({ className, label }: { className?: string; label?: stri
 }
 
 export function Card({ className, ...rest }: ComponentProps<"section">) {
-  return <section className={clsx("rounded-lg border border-slate-200 bg-white", className)} {...rest} />;
+  return <section className={clsx("rounded-2xl border border-slate-200/80 bg-white shadow-card", className)} {...rest} />;
 }
 
 const BADGE_TONES = {
@@ -119,7 +119,7 @@ const BADGE_TONES = {
 
 export function Badge({ tone = "neutral", children, title }: { tone?: keyof typeof BADGE_TONES; children: ReactNode; title?: string }) {
   return (
-    <span title={title} className={clsx("inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium", BADGE_TONES[tone])}>
+    <span title={title} className={clsx("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-black/5", BADGE_TONES[tone])}>
       {children}
     </span>
   );
@@ -128,7 +128,7 @@ export function Badge({ tone = "neutral", children, title }: { tone?: keyof type
 /** What a list shows when there is nothing in it yet. */
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 px-6 py-10 text-center">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
       <p className="font-medium text-slate-900">{title}</p>
       {children && <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">{children}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -138,5 +138,5 @@ export function EmptyState({ title, children, action }: { title: string; childre
 
 /** A grey block standing in for content that is still loading. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={clsx("animate-pulse rounded bg-slate-200", className)} />;
+  return <div aria-hidden="true" className={clsx("animate-shimmer rounded-xl bg-[linear-gradient(90deg,#e2e8f0_25%,#f1f5f9_50%,#e2e8f0_75%)] bg-[length:200%_100%]", className)} />;
 }

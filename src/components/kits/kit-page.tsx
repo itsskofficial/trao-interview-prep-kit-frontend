@@ -24,6 +24,20 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
+function Tile({ label, value, meter }: { label: string; value: string | number; meter?: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-card">
+      <dd className="text-2xl font-semibold tracking-tight text-slate-900">{value}</dd>
+      <dt className="text-xs text-slate-600">{label}</dt>
+      {meter !== undefined && (
+        <div aria-hidden="true" className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-400 transition-[width] duration-500" style={{ width: `${Math.round(meter * 100)}%` }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function KitPage({ id }: { id: string }) {
   const editor = useKitEditor(id);
   const { kit, stored, loadError, saveState, saveError, rejected, actions } = editor;
@@ -99,6 +113,17 @@ export function KitPage({ id }: { id: string }) {
         </div>
       </header>
 
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
+        <Tile label="Must-have requirements" value={kit.role.requirements.filter((requirement) => requirement.priority === "must").length} />
+        <Tile label="Questions" value={kit.questions.length} />
+        <Tile label="Flashcards" value={kit.flashcards.length} />
+        <Tile
+          label="Requirements covered"
+          value={`${kit.role.requirements.length - kit.coverage.uncovered_requirement_ids.length} / ${kit.role.requirements.length}`}
+          meter={kit.role.requirements.length === 0 ? 0 : 1 - kit.coverage.uncovered_requirement_ids.length / kit.role.requirements.length}
+        />
+      </dl>
+
       {rejected && (
         <Alert tone="warning" title="One change could not be saved" action={<Button size="sm" onClick={actions.dismissRejected}>Dismiss</Button>}>
           {rejected} The kit has been refreshed.
@@ -115,7 +140,7 @@ export function KitPage({ id }: { id: string }) {
         </Alert>
       )}
 
-      <div role="tablist" aria-label="Kit sections" onKeyDown={onTabKey} className="-mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 px-4 print:hidden sm:mx-0 sm:px-0">
+      <div role="tablist" aria-label="Kit sections" onKeyDown={onTabKey} className="sticky top-[57px] z-20 -mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50/85 px-4 backdrop-blur-md print:hidden sm:mx-0 sm:rounded-t-xl sm:px-1">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -139,7 +164,7 @@ export function KitPage({ id }: { id: string }) {
         ))}
       </div>
 
-      <div role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`} tabIndex={-1}>
+      <div key={active} role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`} tabIndex={-1} className="animate-rise">
         {active === "overview" && <OverviewTab editor={editor} />}
         {active === "questions" && <QuestionsTab editor={editor} />}
         {active === "flashcards" && <FlashcardsTab editor={editor} />}

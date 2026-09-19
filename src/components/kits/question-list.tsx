@@ -81,7 +81,7 @@ function QuestionItem({ question, position, total, requirements, actions, beingR
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={clsx("rounded-lg border bg-white", isDragging ? "relative z-10 border-indigo-400 shadow-lg" : "border-slate-200", beingReplaced && "opacity-60")}
+      className={clsx("rounded-2xl border bg-white transition-shadow", isDragging ? "relative z-10 border-indigo-400 shadow-lift" : "border-slate-200/80 shadow-card", beingReplaced && "opacity-60")}
     >
       <div className="flex gap-2 p-3">
         <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">

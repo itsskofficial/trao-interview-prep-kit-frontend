@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { onServerSlow } from "@/lib/api";
 import { signOut, useSession } from "@/lib/session";
+import { LogoMark } from "./ui/logo";
 import { Button } from "./ui/primitives";
 
 const NAV = [
@@ -22,9 +23,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-slate-200 bg-white print:hidden">
+      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-md print:hidden">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/" className="rounded font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          <Link href="/" className="flex items-center gap-2 rounded-lg font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <LogoMark />
             Interview Prep Kit
           </Link>
           <nav aria-label="Main" className="flex gap-1">
@@ -37,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-current={current ? "page" : undefined}
                   className={clsx(
                     "rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600",
-                    current ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                    current ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                   )}
                 >
                   {item.label}

@@ -118,7 +118,11 @@ export function JobProgress({ id }: { id: string }) {
       )}
       {isActive(job) && <p className="text-sm text-slate-600">This usually takes one to two minutes. You can leave this page; the kit will be under My kits when it is done.</p>}
 
-      <Card className="p-0">
+      <div role="progressbar" aria-label="Overall progress" aria-valuemin={0} aria-valuemax={STEPS.length} aria-valuenow={finishedSteps(job)} className="h-2 overflow-hidden rounded-full bg-slate-200">
+        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-400 transition-[width] duration-700" style={{ width: `${(finishedSteps(job) / STEPS.length) * 100}%` }} />
+      </div>
+
+      <Card className="overflow-hidden p-0">
         {/* Announced politely, so a screen reader hears each step finish without being interrupted. */}
         <ol aria-live="polite" className="divide-y divide-slate-100">
           {STEPS.map((step, index) => {
@@ -142,6 +146,11 @@ export function JobProgress({ id }: { id: string }) {
       </Card>
     </div>
   );
+}
+
+/** Steps that have ended, however they ended. */
+function finishedSteps(job: Job): number {
+  return STEPS.filter((step) => ["done", "skipped", "failed"].includes(stateOf(job.steps, step.id).state)).length;
 }
 
 function headline(job: Job): string {

@@ -5,7 +5,7 @@ import { isActive, useJobs, useKits } from "@/lib/hooks";
 import type { Job, KitSummary } from "@/lib/types";
 import { Alert, Badge, Button, Card, EmptyState, Skeleton, Spinner } from "../ui/primitives";
 
-const linkButton = "inline-flex min-h-10 items-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
+const linkButton = "inline-flex min-h-10 items-center rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-4 text-sm font-medium text-white shadow-sm shadow-indigo-600/30 transition hover:to-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
 
 /** Everything the user has: kits being generated or needing attention first, then finished kits. */
 export function KitList() {
@@ -82,7 +82,7 @@ export function KitList() {
 function JobRow({ job }: { job: Job }) {
   const current = job.steps.at(-1);
   return (
-    <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 hover:border-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+    <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-card transition hover:border-indigo-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
       {isActive(job) ? <Spinner className="h-5 w-5 shrink-0 text-indigo-600" /> : <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium text-slate-900">{job.label}</span>
@@ -97,13 +97,22 @@ function JobRow({ job }: { job: Job }) {
 
 function KitCard({ kit }: { kit: KitSummary }) {
   return (
-    <Card className="h-full transition-colors hover:border-slate-300">
+    <Card className="h-full animate-rise transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lift">
       <Link href={`/kits/${kit.id}`} className="block h-full rounded-lg p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
         <p className="font-semibold text-slate-900">{kit.role || "Untitled role"}</p>
         <p className="text-sm text-slate-600">{kit.company || "Company not identified"}</p>
-        <p className="mt-3 text-sm text-slate-600">
-          {kit.questionCount} questions · {kit.flashcardCount} flashcards · {kit.daysAvailable}-day plan
-        </p>
+        <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+          {[
+            [kit.questionCount, "questions"],
+            [kit.flashcardCount, "flashcards"],
+            [kit.daysAvailable, kit.daysAvailable === 1 ? "day" : "days"],
+          ].map(([value, label]) => (
+            <div key={label} className="rounded-xl bg-slate-50 px-2 py-2">
+              <dd className="text-lg font-semibold leading-none text-slate-900">{value}</dd>
+              <dt className="mt-1 text-xs text-slate-600">{label}</dt>
+            </div>
+          ))}
+        </dl>
         {kit.notes.length > 0 && (
           <p className="mt-2">
             <Badge tone="amber" title={kit.notes.join(" ")}>
