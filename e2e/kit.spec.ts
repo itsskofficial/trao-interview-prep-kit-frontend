@@ -118,3 +118,14 @@ test("practice records confidence, reports weak spots, and the schedule can be r
   await page.getByRole("button", { name: "Back to the default plan" }).click();
   await expect(page.getByText("Re-planned from day 2 around your weak spots")).toBeHidden();
 });
+
+test("the one-page summary reflects the user's edits", async ({ page }) => {
+  await page.getByRole("textbox", { name: "Company summary" }).fill("My own one-line summary of Acme.");
+  await saved(page);
+  await page.getByRole("link", { name: "One-page summary" }).click();
+
+  await expect(page.getByRole("heading", { name: "Their interview process" })).toBeVisible();
+  await expect(page.getByText("My own one-line summary of Acme.")).toBeVisible();
+  await expect(page.getByText("Must have:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Print or save as PDF" })).toBeVisible();
+});

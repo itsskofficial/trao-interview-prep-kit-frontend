@@ -30,6 +30,8 @@ export function useKitEditor(id: string) {
     const acceptAnswer = (latest: StoredKit) => {
       setStored(latest);
       if (holder.queue.idle) setKit(latest.kit);
+      // Other screens read this kit from the shared cache (the one-page summary, for one), so keep it current.
+      void revalidate(key, latest, { revalidate: false });
     };
     holder.queue = new SaveQueue({
       send: (op) => {
@@ -60,21 +62,27 @@ export function useKitEditor(id: string) {
     onSuccess: accept,
   });
 
-  // Leaving the page: send whatever was still waiting for a pause in typing.
+  // Leaving the page: send whatever was still waiting for a pause in typing, in order, and then
+  // refresh the shared cache so the next screen does not show the kit from before those changes.
   useEffect(
     () => () => {
-      for (const op of queue.drain()) {
-        const request = toRequest(op);
-        void fetch(`/api/kits/${id}${request.path}`, {
-          method: request.method,
-          keepalive: true,
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request.body ?? {}),
-        });
-      }
+      const ops = queue.drain();
+      if (ops.length === 0) return;
+      void (async () => {
+        for (const op of ops) {
+          const request = toRequest(op);
+          await fetch(`/api${key}${request.path}`, {
+            method: request.method,
+            keepalive: true,
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request.body ?? {}),
+          }).catch(() => undefined);
+        }
+        await revalidate(key);
+      })();
     },
-    [id, queue],
+    [key, queue],
   );
 
   // Warn before closing the tab with unsaved work.
