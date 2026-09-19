@@ -7,6 +7,8 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { ApiError } from "@/lib/api";
 import { useKitEditor } from "@/lib/kit-editor";
 import { CATEGORIES } from "@/lib/types";
+import { api } from "@/lib/api";
+import { ConfirmDialog, type ConfirmDialogHandle } from "../ui/confirm-dialog";
 import { Alert, Button, Skeleton } from "../ui/primitives";
 import { FlashcardsTab } from "./flashcards-tab";
 import { OverviewTab } from "./overview-tab";
@@ -45,6 +47,7 @@ export function KitPage({ id }: { id: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const deleteDialog = useRef<ConfirmDialogHandle>(null);
   const [undoing, setUndoing] = useState(false);
   const [undoError, setUndoError] = useState<string | null>(null);
 
@@ -107,11 +110,31 @@ export function KitPage({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-3 print:hidden">
           <SaveIndicator state={saveState} error={saveError} onRetry={actions.retrySave} />
+          <a href={`/api/kits/${id}/export`} download className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Download JSON
+          </a>
+          <Button size="sm" variant="danger" onClick={() => deleteDialog.current?.open()}>
+            Delete
+          </Button>
           <Link href={`/kits/${id}/print`} className="inline-flex min-h-8 items-center rounded-md border border-slate-300 bg-white px-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
             One-page summary
           </Link>
         </div>
       </header>
+
+      <ConfirmDialog
+        ref={deleteDialog}
+        title="Delete this kit?"
+        confirmLabel="Delete kit"
+        danger
+        onConfirm={async () => {
+          await api(`/kits/${id}`, { method: "DELETE" });
+          router.push("/");
+        }}
+      >
+        <strong className="font-semibold">{kit.source.role || "This kit"}</strong>
+        {kit.source.company ? ` at ${kit.source.company}` : ""}, with your edits and your practice progress, will be deleted for good.
+      </ConfirmDialog>
 
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
         <Tile label="Must-have requirements" value={kit.role.requirements.filter((requirement) => requirement.priority === "must").length} />

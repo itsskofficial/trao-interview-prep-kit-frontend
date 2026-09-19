@@ -129,3 +129,30 @@ test("the one-page summary reflects the user's edits", async ({ page }) => {
   await expect(page.getByText("Must have:")).toBeVisible();
   await expect(page.getByRole("button", { name: "Print or save as PDF" })).toBeVisible();
 });
+
+test("the coverage map links each requirement to the questions that cover it, and the kit downloads as JSON", async ({ page }) => {
+  const map = page.locator("section", { has: page.getByRole("heading", { name: "Coverage map" }) });
+  await expect(map.getByRole("rowheader").first()).toContainText("Must-have");
+  await expect(map.getByText("No question yet")).toHaveCount(0);
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download JSON" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^kit-.*\.json$/);
+
+  await map.getByRole("link").first().click();
+  await expect(page).toHaveURL(/tab=questions#question-q\d+/);
+  await expect(page.locator("li[data-highlighted]")).toBeVisible();
+});
+
+test("a kit can be deleted, after a confirmation that names it", async ({ page }) => {
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Senior Backend Engineer");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete kit" }).click();
+  await expect(page.getByText("No kits yet")).toBeVisible();
+});

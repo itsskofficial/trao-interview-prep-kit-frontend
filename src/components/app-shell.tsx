@@ -24,10 +24,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-md print:hidden">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-x-2 px-4 py-3 sm:gap-x-6">
           <Link href="/" className="flex items-center gap-2 rounded-lg font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
             <LogoMark />
-            Interview Prep Kit
+            <span className="sr-only sm:not-sr-only">Interview Prep Kit</span>
           </Link>
           <nav aria-label="Main" className="flex gap-1">
             {NAV.map((item) => {

@@ -16,7 +16,8 @@ interface CaseDraft {
 type BatchResult =
   | { index: number; outcome: "started" | "already_running"; job: Job }
   | { index: number; outcome: "kit_exists"; kitId: string }
-  | { index: number; outcome: "invalid"; issues: FieldIssue[] };
+  | { index: number; outcome: "invalid"; issues: FieldIssue[] }
+  | { index: number; outcome: "limited"; message: string };
 
 const MAX_CASES = 10;
 const EXAMPLE = `[
@@ -106,6 +107,7 @@ export function BatchUpload() {
                     <p className="truncate text-slate-600">
                       {typeof entry.company_url === "string" ? entry.company_url : "no company website"} · {typeof entry.days === "number" ? `${entry.days} days` : "no days"}
                     </p>
+                    {result?.outcome === "limited" && <p className="mt-1 text-amber-800">{result.message}</p>}
                     {result?.outcome === "invalid" && (
                       <ul className="mt-1 text-red-700">
                         {result.issues.map((issue) => (
@@ -143,6 +145,7 @@ export function BatchUpload() {
 
 function ResultBadge({ result }: { result: BatchResult }) {
   if (result.outcome === "invalid") return <Badge tone="red">Not started</Badge>;
+  if (result.outcome === "limited") return <Badge tone="amber">Over this hour&apos;s allowance</Badge>;
   if (result.outcome === "kit_exists") {
     return (
       <Link href={`/kits/${result.kitId}`} className="text-sm font-medium text-indigo-700 underline underline-offset-2">

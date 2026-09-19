@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { isActive, useJobs, useKits } from "@/lib/hooks";
 import type { Job, KitSummary } from "@/lib/types";
+import { useRef } from "react";
+import { api } from "@/lib/api";
+import { ConfirmDialog, type ConfirmDialogHandle } from "../ui/confirm-dialog";
 import { Alert, Badge, Button, Card, EmptyState, Skeleton, Spinner } from "../ui/primitives";
 
 const linkButton = "inline-flex min-h-10 items-center rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-4 text-sm font-medium text-white shadow-sm shadow-indigo-600/30 transition hover:to-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
@@ -69,7 +72,7 @@ export function KitList() {
           <ul className="grid gap-3 sm:grid-cols-2">
             {kits.data!.kits.map((kit) => (
               <li key={kit.id}>
-                <KitCard kit={kit} />
+                <KitCard kit={kit} onDeleted={() => void kits.mutate()} />
               </li>
             ))}
           </ul>
@@ -95,10 +98,35 @@ function JobRow({ job }: { job: Job }) {
   );
 }
 
-function KitCard({ kit }: { kit: KitSummary }) {
+function KitCard({ kit, onDeleted }: { kit: KitSummary; onDeleted(): void }) {
+  const dialog = useRef<ConfirmDialogHandle>(null);
   return (
-    <Card className="h-full animate-rise transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lift">
-      <Link href={`/kits/${kit.id}`} className="block h-full rounded-lg p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+    <Card className="relative h-full animate-rise transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lift">
+      <button
+        type="button"
+        aria-label={`Delete the kit for ${kit.role || "this role"}`}
+        title="Delete kit"
+        onClick={() => dialog.current?.open()}
+        className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+        </svg>
+      </button>
+      <ConfirmDialog
+        ref={dialog}
+        title="Delete this kit?"
+        confirmLabel="Delete kit"
+        danger
+        onConfirm={async () => {
+          await api(`/kits/${kit.id}`, { method: "DELETE" });
+          onDeleted();
+        }}
+      >
+        <strong className="font-semibold">{kit.role || "This kit"}</strong>
+        {kit.company ? ` at ${kit.company}` : ""}, with your edits and your practice progress, will be deleted for good.
+      </ConfirmDialog>
+      <Link href={`/kits/${kit.id}`} className="block h-full rounded-2xl p-4 pr-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
         <p className="font-semibold text-slate-900">{kit.role || "Untitled role"}</p>
         <p className="text-sm text-slate-600">{kit.company || "Company not identified"}</p>
         <dl className="mt-4 grid grid-cols-3 gap-2 text-center">

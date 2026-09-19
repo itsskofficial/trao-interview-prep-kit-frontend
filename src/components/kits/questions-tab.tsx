@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { ApiError } from "@/lib/api";
 import type { KitEditor } from "@/lib/kit-editor";
 import { CATEGORIES, isProtected, type Question, type QuestionCategory } from "@/lib/types";
@@ -9,6 +9,19 @@ import { QuestionList } from "./question-list";
 import { RegenerateButton, UndoToast } from "./regenerate";
 
 const UNDO_WINDOW_MS = 6_000;
+
+/** The question named in the URL (#question-q3), if any. Client-side navigation does not set :target, so it is read directly. */
+function useLinkedQuestionId(): string | undefined {
+  const hash = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("hashchange", notify);
+      return () => window.removeEventListener("hashchange", notify);
+    },
+    () => window.location.hash,
+    () => "",
+  );
+  return hash.startsWith("#question-") ? hash.slice("#question-".length) : undefined;
+}
 
 /**
  * Deleting hides the question at once and tells the server a few seconds later, so "Undo" is
@@ -54,6 +67,14 @@ function useDeferredDelete(commit: (id: string) => void) {
 export function QuestionsTab({ editor }: { editor: KitEditor }) {
   const { kit, stored, actions } = editor;
   const deletion = useDeferredDelete(actions.deleteQuestion);
+  const loaded = kit !== null;
+  const linkedId = useLinkedQuestionId();
+
+  // Arriving from the coverage map: the list has only just rendered, so scroll to the question now.
+  useEffect(() => {
+    if (loaded && linkedId) document.getElementById(`question-${linkedId}`)?.scrollIntoView({ block: "start" });
+  }, [loaded, linkedId]);
+
   if (!kit) return null;
 
   const running = stored?.regeneration?.status === "running" ? stored.regeneration : null;
@@ -95,7 +116,7 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
                 {blocked ? "Nothing about the company could be retrieved, so none were generated. You can still add your own." : "Add your own below, or regenerate this category."}
               </EmptyState>
             ) : (
-              <QuestionList category={category} questions={questions} requirements={kit.role.requirements} actions={actions} regenerating={regenerating} onDelete={deletion.remove} />
+              <QuestionList category={category} questions={questions} requirements={kit.role.requirements} actions={actions} regenerating={regenerating} highlightId={linkedId} onDelete={deletion.remove} />
             )}
             <AddQuestion category={category} label={label} onAdd={actions.addQuestion} />
           </section>

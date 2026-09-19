@@ -17,6 +17,8 @@ interface QuestionListProps {
   actions: KitActions;
   /** This category is being regenerated right now. */
   regenerating: boolean;
+  /** The question a link pointed at, shown with a ring. */
+  highlightId?: string;
   onDelete(question: Question): void;
 }
 
@@ -26,7 +28,7 @@ const selectClass = "h-8 rounded-md border border-slate-300 bg-white px-2 text-s
  * One category's questions, reorderable by mouse, touch or keyboard (focus the handle, Space to
  * pick up, arrows to move, Space to drop; the library announces each step to screen readers).
  */
-export function QuestionList({ category, questions, requirements, actions, regenerating, onDelete }: QuestionListProps) {
+export function QuestionList({ category, questions, requirements, actions, regenerating, highlightId, onDelete }: QuestionListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -51,6 +53,7 @@ export function QuestionList({ category, questions, requirements, actions, regen
               requirements={requirements}
               actions={actions}
               beingReplaced={regenerating && !isProtected(question)}
+              highlighted={question.id === highlightId}
               onDelete={() => onDelete(question)}
               onStep={(delta) => actions.reorderQuestions(category, arrayMove(ids, index, index + delta))}
             />
@@ -68,20 +71,23 @@ interface QuestionItemProps {
   requirements: Requirement[];
   actions: KitActions;
   beingReplaced: boolean;
+  highlighted: boolean;
   onDelete(): void;
   onStep(delta: -1 | 1): void;
 }
 
-function QuestionItem({ question, position, total, requirements, actions, beingReplaced, onDelete, onStep }: QuestionItemProps) {
+function QuestionItem({ question, position, total, requirements, actions, beingReplaced, highlighted, onDelete, onStep }: QuestionItemProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: question.id });
   const covered = requirements.filter((requirement) => question.requirement_ids.includes(requirement.id));
   const name = `question ${position} of ${total}`;
 
   return (
     <li
+      id={`question-${question.id}`}
+      data-highlighted={highlighted || undefined}
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={clsx("rounded-2xl border bg-white transition-shadow", isDragging ? "relative z-10 border-indigo-400 shadow-lift" : "border-slate-200/80 shadow-card", beingReplaced && "opacity-60")}
+      className={clsx("scroll-mt-32 rounded-2xl border bg-white transition-shadow", highlighted && "ring-2 ring-indigo-400", isDragging ? "relative z-10 border-indigo-400 shadow-lift" : "border-slate-200/80 shadow-card", beingReplaced && "opacity-60")}
     >
       <div className="flex gap-2 p-3">
         <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">

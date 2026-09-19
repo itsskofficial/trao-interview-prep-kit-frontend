@@ -2,7 +2,9 @@
 
 import type { KitEditor } from "@/lib/kit-editor";
 import { isProtected, type ResearchLogEntry } from "@/lib/types";
+import { usePathname } from "next/navigation";
 import { Alert, Badge, Card, Spinner } from "../ui/primitives";
+import { CoverageMap } from "./coverage-map";
 import { EditableText } from "./editable-text";
 import { PinButton, ProvenanceBadges } from "./provenance";
 import { RegenerateButton } from "./regenerate";
@@ -19,6 +21,7 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export function OverviewTab({ editor }: { editor: KitEditor }) {
   const { kit, stored, actions } = editor;
+  const pathname = usePathname();
   if (!kit) return null;
 
   const brief = kit.company_brief;
@@ -150,6 +153,8 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
           </>
         )}
       </Card>
+
+      <CoverageMap kit={kit} kitPath={pathname} />
 
       <Card className="p-5" aria-labelledby="research-heading">
         <h2 id="research-heading" className="text-lg font-semibold">
