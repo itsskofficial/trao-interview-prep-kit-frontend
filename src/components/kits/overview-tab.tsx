@@ -19,6 +19,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "stack-exchange-workplace": "Stack Exchange Workplace",
   "public-discussion": "Public discussion",
   "link-picker": "Link suggestions from the model",
+  "web-search": "Web search",
 };
 
 export function OverviewTab({ editor }: { editor: KitEditor }) {
