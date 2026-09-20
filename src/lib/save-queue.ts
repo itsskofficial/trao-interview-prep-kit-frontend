@@ -10,6 +10,8 @@ interface Pending {
   op: KitOp;
   /** Text edits wait for a pause in typing; everything else goes at once. */
   notBefore: number;
+  /** Brought back from a previous visit. If the server refuses it, that is not news: the kit has simply moved on. */
+  restored?: boolean;
 }
 
 export interface SaveQueueHandlers {
@@ -19,6 +21,8 @@ export interface SaveQueueHandlers {
   onState(state: SaveState, error: string | null): void;
   /** A change the server refused for good (the item is gone, or the change no longer makes sense). */
   onRejected(message: string): void;
+  /** Everything not yet confirmed by the server, in order, whenever that changes. What a closed tab would otherwise lose. */
+  onPending?(ops: KitOp[]): void;
 }
 
 /**
@@ -35,6 +39,7 @@ export class SaveQueue {
   private pending: Pending[] = [];
   private sending = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private restoredOnce = false;
 
   constructor(private readonly handlers: SaveQueueHandlers) {}
 
@@ -55,8 +60,24 @@ export class SaveQueue {
     } else {
       this.pending.push({ op, notBefore });
     }
+    this.changed();
     this.handlers.onState("unsaved", null);
     void this.pump();
+  }
+
+  /** Changes written down on an earlier visit and never confirmed. They go first, in the order they were made. */
+  restore(ops: KitOp[]): void {
+    // Once per queue: the development double-mount, or a caller asking twice, must not send them twice.
+    if (this.restoredOnce || ops.length === 0) return;
+    this.restoredOnce = true;
+    this.pending.unshift(...ops.map((op) => ({ op, notBefore: 0, restored: true })));
+    this.changed();
+    this.handlers.onState("unsaved", null);
+    void this.pump();
+  }
+
+  private changed(): void {
+    this.handlers.onPending?.(this.pending.map((entry) => entry.op));
   }
 
   retry(): void {
@@ -90,13 +111,15 @@ export class SaveQueue {
       const answer = await this.handlers.send(next.op);
       this.pending.shift();
       this.sending = false;
+      this.changed();
       this.handlers.onAnswer(answer);
     } catch (failure) {
       this.sending = false;
       const error = failure instanceof ApiError ? failure : new ApiError(0, "UNKNOWN", "Could not save.");
       if (error.status === 404 || error.status === 400) {
         this.pending.shift();
-        this.handlers.onRejected(error.message);
+        this.changed();
+        if (!next.restored) this.handlers.onRejected(error.message);
       } else {
         return this.handlers.onState("failed", error.message);
       }

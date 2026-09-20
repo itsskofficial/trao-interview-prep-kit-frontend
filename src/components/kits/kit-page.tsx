@@ -42,7 +42,7 @@ function Tile({ label, value, meter }: { label: string; value: string | number; 
 
 export function KitPage({ id }: { id: string }) {
   const editor = useKitEditor(id);
-  const { kit, stored, loadError, saveState, saveError, rejected, actions } = editor;
+  const { kit, stored, loadError, saveState, saveError, rejected, restored, actions } = editor;
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -147,6 +147,11 @@ export function KitPage({ id }: { id: string }) {
         />
       </dl>
 
+      {restored > 0 && (
+        <Alert tone="info" title={restored === 1 ? "One unsaved change was recovered" : `${restored} unsaved changes were recovered`} action={<Button size="sm" onClick={actions.dismissRestored}>Dismiss</Button>}>
+          {restored === 1 ? "It was" : "They were"} made on your last visit and never reached the server, so {restored === 1 ? "it has" : "they have"} been applied and sent now.
+        </Alert>
+      )}
       {rejected && (
         <Alert tone="warning" title="One change could not be saved" action={<Button size="sm" onClick={actions.dismissRejected}>Dismiss</Button>}>
           {rejected} The kit has been refreshed.

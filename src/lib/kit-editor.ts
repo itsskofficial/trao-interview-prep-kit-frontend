@@ -5,6 +5,7 @@ import useSWR, { mutate as writeCache } from "swr";
 import { api, fetcher, type ApiError } from "./api";
 import { applyLocally, toRequest, type KitOp } from "./kit-ops";
 import { SaveQueue, type SaveState } from "./save-queue";
+import { clearUnsaved, loadUnsaved, saveUnsaved } from "./unsaved-store";
 import type { Flashcard, Kit, Question, QuestionCategory, StoredKit } from "./types";
 
 const POLL_WHILE_REGENERATING_MS = 2_000;
@@ -28,18 +29,24 @@ export function useKitEditor(id: string) {
   const [ahead, setAhead] = useState<Kit | null>(null);
   const [save, setSave] = useState<{ state: SaveState; error: string | null }>({ state: "saved", error: null });
   const [rejected, setRejected] = useState<string | null>(null);
+  // Changes a previous visit made and the server never confirmed (the tab was closed while offline). Read once, here,
+  // because reading is all a render may do; they are handed to the queue from an effect further down.
+  const [recovered, setRecovered] = useState<{ ops: KitOp[]; applied: boolean; dismissed: boolean }>(() => ({ ops: loadUnsaved(id), applied: false, dismissed: false }));
 
   const { data: stored, error: loadError } = useSWR<StoredKit, ApiError>(key, fetcher, {
     revalidateOnFocus: false,
     refreshInterval: (latest) => (latest?.regeneration?.status === "running" ? POLL_WHILE_REGENERATING_MS : 0),
   });
-  const kit = ahead ?? stored?.kit ?? null;
+  // Until the server has confirmed the recovered changes, they are shown on top of whatever it sent.
+  const kit = ahead ?? (stored ? (recovered.applied ? stored.kit : recovered.ops.reduce(applyLocally, stored.kit)) : null);
 
   // Created once. Its handlers need to ask the queue whether it is idle, hence the holder.
   const [{ queue }] = useState(() => {
     const holder = { queue: undefined as unknown as SaveQueue };
     const settle = () => {
-      if (holder.queue.idle) setAhead(null);
+      if (!holder.queue.idle) return;
+      setAhead(null);
+      setRecovered((current) => (current.applied ? current : { ...current, applied: true }));
     };
     holder.queue = new SaveQueue({
       send: (op) => {
@@ -48,6 +55,9 @@ export function useKitEditor(id: string) {
       },
       onAnswer: (answer) => void writeCache(key, answer, { revalidate: false }).then(settle),
       onState: (state, error) => setSave({ state, error }),
+      // Written down as they queue up and crossed off as the server confirms them, so what is in storage is
+      // exactly what a closed tab would lose.
+      onPending: (ops) => saveUnsaved(id, ops),
       onRejected: (message) => {
         setRejected(message);
         void writeCache(key).then(settle);
@@ -63,16 +73,21 @@ export function useKitEditor(id: string) {
       const ops = queue.drain();
       if (ops.length === 0) return;
       void (async () => {
+        let delivered = true;
         for (const op of ops) {
           const request = toRequest(op);
-          await fetch(`/api${key}${request.path}`, {
+          const response = await fetch(`/api${key}${request.path}`, {
             method: request.method,
             keepalive: true,
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(request.body ?? {}),
           }).catch(() => undefined);
+          // Refused for good counts as dealt with; no answer at all (offline) does not.
+          if (!response || (!response.ok && response.status !== 400 && response.status !== 404)) delivered = false;
         }
+        // What got through no longer needs remembering. What did not stays written down for the next visit.
+        if (delivered) clearUnsaved(id);
         await writeCache(key);
       })();
     };
@@ -81,7 +96,12 @@ export function useKitEditor(id: string) {
       window.removeEventListener("pagehide", sendWaiting);
       sendWaiting();
     };
-  }, [key, queue]);
+  }, [key, queue, id]);
+
+  // Hand the recovered changes to the queue. They go ahead of anything typed since, in the order they were made.
+  useEffect(() => {
+    if (stored && recovered.ops.length > 0) queue.restore(recovered.ops);
+  }, [stored, recovered.ops, queue]);
 
   // Warn before closing the tab with unsaved work.
   useEffect(() => {
@@ -95,10 +115,11 @@ export function useKitEditor(id: string) {
   const dispatch = useCallback(
     (op: KitOp, options: { typing?: boolean } = {}) => {
       if (!base) return;
-      setAhead((current) => applyLocally(current ?? base, op));
+      // A change made while recovered ones are still being confirmed builds on them, not on the kit without them.
+      setAhead((current) => applyLocally(current ?? (recovered.applied ? base : recovered.ops.reduce(applyLocally, base)), op));
       if (!leavesRequiredFieldBlank(op)) queue.enqueue(op, options);
     },
-    [queue, base],
+    [queue, base, recovered],
   );
 
   /** Requests that need the server's answer before anything can be shown (a new id, a started regeneration). */
@@ -131,6 +152,7 @@ export function useKitEditor(id: string) {
       replan: (fromDay: number) => request("/practice/replan", { from_day: fromDay }),
       retrySave: () => queue.retry(),
       dismissRejected: () => setRejected(null),
+      dismissRestored: () => setRecovered((current) => ({ ...current, dismissed: true })),
       reload: () => void writeCache(key),
     }),
     [dispatch, request, queue, key],
@@ -143,6 +165,8 @@ export function useKitEditor(id: string) {
     saveState: save.state,
     saveError: save.error,
     rejected,
+    /** How many changes from an earlier visit were found waiting and sent again. Zero once dismissed. */
+    restored: recovered.dismissed ? 0 : recovered.ops.length,
     regenerating: stored?.regeneration?.status === "running",
     actions,
   };
