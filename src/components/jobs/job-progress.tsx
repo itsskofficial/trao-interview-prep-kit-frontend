@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { isActive, useJob } from "@/lib/hooks";
 import type { Job, JobStep } from "@/lib/types";
+import { RunTraceView } from "../kits/run-trace";
 import { Alert, Button, Card, Skeleton, Spinner } from "../ui/primitives";
 
 /** The pipeline's steps in order, in words a candidate would use. */
@@ -144,6 +145,18 @@ export function JobProgress({ id }: { id: string }) {
           })}
         </ol>
       </Card>
+
+      {/* A run that failed is when what it did matters most: which call failed, on which provider, after how many tries. */}
+      {job.trace && job.status !== "succeeded" && (
+        <Card className="p-5" aria-labelledby="job-trace-heading">
+          <h2 id="job-trace-heading" className="text-lg font-semibold">
+            What this run did
+          </h2>
+          <div className="mt-3">
+            <RunTraceView trace={job.trace} />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
