@@ -39,7 +39,7 @@ test("edits made offline survive closing the tab, and are sent on the next visit
   await expect(next.getByText(/unsaved changes? (was|were) recovered/)).toHaveCount(0);
 });
 
-test("a recovered change the kit has moved past is dropped quietly", async ({ page, context }) => {
+test("a recovered change the kit has moved past is dropped quietly", async ({ page }) => {
   await register(page);
   await createKit(page);
   await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible();
