@@ -9,6 +9,13 @@ import { createKit, register } from "./support";
  */
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"];
 
+/** Clicks a tab and waits until it is the selected one, so the scan that follows is of that tab and not the one being left. */
+async function openTab(page: Page, name: RegExp): Promise<void> {
+  const tab = page.getByRole("tab", { name });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 async function scan(page: Page, screen: string): Promise<void> {
   // Changing tab changes the address, and the framework answers that by fetching the route again and swapping the document
   // <title> for an identical one, with a moment in between when there is none. Nobody uses the page in that moment, so the
@@ -85,7 +92,7 @@ for (const { viewport, colorScheme } of VARIANTS) {
       await scan(page, "overview tab with the run open");
       await page.getByRole("button", { name: "Hide the run" }).click();
 
-      await page.getByRole("tab", { name: /^Questions/ }).click();
+      await openTab(page, /^Questions/);
       await scan(page, "questions tab");
 
       await page.getByRole("button", { name: /^Regenerate/ }).first().click();
@@ -93,13 +100,13 @@ for (const { viewport, colorScheme } of VARIANTS) {
       await scan(page, "regenerate dialog");
       await page.keyboard.press("Escape");
 
-      await page.getByRole("tab", { name: /^Flashcards/ }).click();
+      await openTab(page, /^Flashcards/);
       await scan(page, "flashcards tab");
 
-      await page.getByRole("tab", { name: /^Schedule/ }).click();
+      await openTab(page, /^Schedule/);
       await scan(page, "schedule tab");
 
-      await page.getByRole("tab", { name: /^Practice/ }).click();
+      await openTab(page, /^Practice/);
       await scan(page, "practice tab");
       await page.getByRole("button", { name: /Start practising/ }).click();
       await scan(page, "practice card");
