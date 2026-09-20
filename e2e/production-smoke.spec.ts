@@ -46,6 +46,18 @@ test("a real kit, end to end, on the deployed app", async ({ page }) => {
   await page.waitForURL(/\/kits\//, { timeout: 5 * 60_000 });
   await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible({ timeout: 60_000 });
   await shot("overview");
+
+  // What the live pipeline adds that the offline one cannot show: stages quoted from the real page, and a run answered by a real model.
+  await expect(page.getByRole("heading", { name: /How they hire/ })).toBeVisible();
+  // A live site rewords its stages whenever it likes, so none is named here. What must hold is the shape: at least one stage,
+  // and under it the sentence it was quoted from.
+  const stages = page.getByRole("heading", { name: /How they hire/ }).locator("xpath=following-sibling::ol[1]").getByRole("listitem");
+  await expect(stages.first()).toBeVisible();
+  await expect(stages.filter({ hasText: /“.+”/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Show the run" }).click();
+  await expect(page.getByText("Total time")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Answered by (gemini|groq):/)).toBeVisible();
+  await shot("run");
   await page.getByRole("tab", { name: /^Questions/ }).click();
   await page.waitForTimeout(800);
   await shot("questions");
