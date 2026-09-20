@@ -156,3 +156,67 @@ test("a kit can be deleted, after a confirmation that names it", async ({ page }
   await page.getByRole("dialog").getByRole("button", { name: "Delete kit" }).click();
   await expect(page.getByText("No kits yet")).toBeVisible();
 });
+
+test("flashcards reorder from the keyboard and by dragging, and the order survives a reload", async ({ page }) => {
+  await tab(page, "Flashcards").click();
+  const fronts = page.getByRole("textbox", { name: /^Front of flashcard/ });
+  await expect(fronts.first()).toBeVisible();
+  const before = await fronts.evaluateAll((nodes) => nodes.map((node) => (node as HTMLTextAreaElement).value));
+
+  // From the keyboard. The cards sit in a two-column grid, so the second card is to the right of the first.
+  await page.getByRole("button", { name: /^Reorder flashcard 1 of/ }).focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByText(/Picked up draggable item|was moved over/)).toBeAttached();
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(250);
+  await page.keyboard.press("Space");
+  await saved(page);
+  expect((await fronts.evaluateAll((nodes) => nodes.map((node) => (node as HTMLTextAreaElement).value))).slice(0, 2)).toEqual([before[1], before[0]]);
+
+  // With the mouse: put it back.
+  const handle = page.getByRole("button", { name: /^Reorder flashcard 2 of/ });
+  const target = page.getByRole("button", { name: /^Reorder flashcard 1 of/ });
+  const from = (await handle.boundingBox())!;
+  const to = (await target.boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await saved(page);
+
+  await page.reload();
+  await tab(page, "Flashcards").click();
+  await expect(fronts.first()).toHaveValue(before[0]!);
+  await expect(fronts.nth(1)).toHaveValue(before[1]!);
+});
+
+test("a question can be dragged into another category, and that changes its category for good", async ({ page }) => {
+  // Tall enough to hold both lists, so the drag is one straight movement and not a fight with auto-scrolling.
+  await page.setViewportSize({ width: 1280, height: 1800 });
+  await tab(page, "Questions").click();
+  const behavioural = page.locator("section", { has: page.getByRole("heading", { name: /^Behavioural/ }) });
+  const moving = await prompts(page).first().inputValue();
+  const technicalBefore = await prompts(page).count();
+  const behaviouralBefore = await behavioural.getByRole("textbox", { name: /^Prompt of question/ }).count();
+
+  const handle = technical(page).getByRole("button", { name: /^Reorder question 1 of/ });
+  const target = behavioural.getByRole("button", { name: /^Reorder question 1 of/ });
+  const from = (await handle.boundingBox())!;
+  const to = (await target.boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 20, { steps: 4 });
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+  await page.mouse.up();
+  await saved(page);
+
+  await expect(prompts(page)).toHaveCount(technicalBefore - 1);
+  await expect(behavioural.getByRole("textbox", { name: /^Prompt of question/ })).toHaveCount(behaviouralBefore + 1);
+  await expect(behavioural.getByRole("textbox", { name: /^Prompt of question/ }).first()).toHaveValue(moving);
+
+  // Moving a question is a decision about it, so it is kept when its new category is regenerated.
+  await page.reload();
+  await tab(page, "Questions").click();
+  await expect(behavioural.getByRole("textbox", { name: /^Prompt of question/ }).first()).toHaveValue(moving);
+  await expect(behavioural.getByRole("button", { name: /^Unpin question 1 of/ })).toBeVisible();
+});
