@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { closestCorners, DndContext, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import clsx from "clsx";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import type { KitEditor } from "@/lib/kit-editor";
 import { CATEGORIES, isProtected, type Question, type QuestionCategory } from "@/lib/types";
@@ -67,6 +70,16 @@ function useDeferredDelete(commit: (id: string) => void) {
   return { hiddenId: pending?.id, pending, paused, setPaused, remove, undo, flush };
 }
 
+/** A category's whole section is somewhere a question can be dropped, which is what makes an empty category reachable. */
+function CategoryDropZone({ category, children }: { category: QuestionCategory; children: ReactNode }) {
+  const { setNodeRef, isOver, active } = useDroppable({ id: `category:${category}` });
+  return (
+    <div ref={setNodeRef} className={clsx("rounded-2xl transition-shadow", isOver && active && "ring-2 ring-indigo-300 ring-offset-4 ring-offset-transparent")}>
+      {children}
+    </div>
+  );
+}
+
 export function QuestionsTab({ editor }: { editor: KitEditor }) {
   const { kit, stored, actions } = editor;
   const deletion = useDeferredDelete(actions.deleteQuestion);
@@ -92,7 +105,35 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
     if (loaded && linkedId) document.getElementById(`question-${linkedId}`)?.scrollIntoView({ block: "start" });
   }, [loaded, linkedId]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   if (!kit) return null;
+
+  const visible = kit.questions.filter((question) => question.id !== deletion.hiddenId);
+  const inCategory = (category: QuestionCategory) => visible.filter((question) => question.category === category).map((question) => question.id);
+
+  /** Dropped on a question, or on a category's section. Within a list it is a reorder; across lists it changes the question's category. */
+  function onDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const moving = visible.find((question) => question.id === active.id);
+    if (!moving) return;
+
+    const overId = String(over.id);
+    const target = overId.startsWith("category:") ? (overId.slice("category:".length) as QuestionCategory) : visible.find((question) => question.id === overId)?.category;
+    if (!target) return;
+
+    const ids = inCategory(target);
+    if (target === moving.category) {
+      // Dropped on its own section rather than on a question: nothing to do.
+      if (overId.startsWith("category:")) return;
+      settled.reorderQuestions(target, arrayMove(ids, ids.indexOf(moving.id), ids.indexOf(overId)));
+    } else {
+      settled.moveQuestion(moving.id, target, overId.startsWith("category:") ? ids.length : ids.indexOf(overId));
+    }
+  }
 
   const running = stored?.regeneration?.status === "running" ? stored.regeneration : null;
   const companyKnown = kit.company_brief.sources.length > 0;
@@ -100,9 +141,11 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
   return (
     <div className="space-y-8">
       <p className="text-sm text-slate-600">
-        Click any text to edit it. Drag the handle, or focus it and use Space and the arrow keys, to reorder. Anything you write, edit or pin is kept when you regenerate a category.
+        Click any text to edit it. Drag the handle, or focus it and use Space and the arrow keys, to reorder or to move a question into another category. Anything you write, edit or pin is kept when you
+        regenerate a category.
       </p>
 
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
       {CATEGORIES.map(({ id: category, label }) => {
         const questions = kit.questions.filter((question) => question.category === category && question.id !== deletion.hiddenId);
         const keep = questions.filter(isProtected).length;
@@ -110,7 +153,8 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
         const blocked = category === "company-fit" && !companyKnown;
 
         return (
-          <section key={category} aria-labelledby={`category-${category}`}>
+          <CategoryDropZone key={category} category={category}>
+          <section aria-labelledby={`category-${category}`}>
             <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 id={`category-${category}`} className="text-lg font-semibold">
                 {label} <span className="font-normal text-slate-500">({questions.length})</span>
@@ -137,8 +181,10 @@ export function QuestionsTab({ editor }: { editor: KitEditor }) {
             )}
             <AddQuestion category={category} label={label} onAdd={settled.addQuestion} />
           </section>
+          </CategoryDropZone>
         );
       })}
+      </DndContext>
 
       {deletion.pending && <UndoToast key={deletion.pending.id} message="Question deleted." onUndo={deletion.undo} onDone={deletion.flush} paused={deletion.paused} onPauseChange={deletion.setPaused} />}
     </div>

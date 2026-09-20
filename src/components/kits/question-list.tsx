@@ -1,7 +1,6 @@
 "use client";
 
-import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
 import type { KitActions } from "@/lib/kit-editor";
@@ -27,21 +26,13 @@ const selectClass = "h-8 rounded-md border border-slate-300 bg-surface px-2 text
 /**
  * One category's questions, reorderable by mouse, touch or keyboard (focus the handle, Space to
  * pick up, arrows to move, Space to drop; the library announces each step to screen readers).
+ * The drag itself is owned by the tab, one level up, so that a question can be dropped into another
+ * category's list; this component only says which questions are sortable together.
  */
 export function QuestionList({ category, questions, requirements, actions, regenerating, highlightId, onDelete }: QuestionListProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
   const ids = questions.map((question) => question.id);
 
-  function onDragEnd({ active, over }: DragEndEvent) {
-    if (!over || active.id === over.id) return;
-    actions.reorderQuestions(category, arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))));
-  }
-
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <ol className="space-y-2">
           {questions.map((question, index) => (
@@ -60,7 +51,6 @@ export function QuestionList({ category, questions, requirements, actions, regen
           ))}
         </ol>
       </SortableContext>
-    </DndContext>
   );
 }
 
