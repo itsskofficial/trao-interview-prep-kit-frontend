@@ -39,7 +39,7 @@ export function PrintKit({ id }: { id: string }) {
   const prompts = new Map(kit.questions.map((question) => [question.id, question.prompt]));
 
   return (
-    <main id="main" className="mx-auto max-w-3xl bg-white px-6 py-6 text-[13px] leading-snug text-slate-900 print:max-w-none print:p-0">
+    <main id="main" className="mx-auto max-w-3xl bg-surface px-6 py-6 text-[13px] leading-snug text-slate-900 print:max-w-none print:p-0">
       <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
         <Link href={`/kits/${id}`} className="text-sm font-medium text-indigo-700 underline underline-offset-2">
           Back to the kit

@@ -85,7 +85,7 @@ export function KitList() {
 function JobRow({ job }: { job: Job }) {
   const current = job.steps.at(-1);
   return (
-    <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-card transition hover:border-indigo-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+    <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-surface px-4 py-3 shadow-card transition hover:border-indigo-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
       {isActive(job) ? <Spinner className="h-5 w-5 shrink-0 text-indigo-600" /> : <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium text-slate-900">{job.label}</span>

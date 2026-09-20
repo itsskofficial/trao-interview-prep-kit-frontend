@@ -10,8 +10,7 @@ import { createKit, register } from "./support";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"];
 
 async function scan(page: Page, screen: string): Promise<void> {
-  // Entry animations fade text in; measuring contrast mid-fade reports colours the user never reads.
-  await page.waitForTimeout(450);
+  await page.waitForTimeout(150);
   const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const readable = violations.map((violation) => ({
     rule: violation.id,
@@ -22,12 +21,18 @@ async function scan(page: Page, screen: string): Promise<void> {
   expect(readable, `${screen} has accessibility violations`).toEqual([]);
 }
 
-for (const viewport of [
+const SCREENS = [
   { name: "laptop", width: 1280, height: 800 },
   { name: "phone", width: 390, height: 844 },
-]) {
-  test.describe(`accessibility at ${viewport.name} width`, () => {
-    test.use({ viewport: { width: viewport.width, height: viewport.height } });
+];
+// The theme follows the device unless the user has chosen otherwise, so telling the browser the device is dark is enough.
+const VARIANTS = SCREENS.flatMap((viewport) => (["light", "dark"] as const).map((colorScheme) => ({ viewport, colorScheme })));
+
+for (const { viewport, colorScheme } of VARIANTS) {
+  test.describe(`accessibility at ${viewport.name} width, ${colorScheme} theme`, () => {
+    // Entry animations fade text in, and a contrast measurement taken mid-fade reports a colour nobody reads. The app already
+    // honours a request for reduced motion, so the scan makes one; what it measures is then the settled page.
+    test.use({ viewport: { width: viewport.width, height: viewport.height }, colorScheme, contextOptions: { reducedMotion: "reduce" } });
 
     test("signed-out screens", async ({ page }) => {
       await page.goto("/login");

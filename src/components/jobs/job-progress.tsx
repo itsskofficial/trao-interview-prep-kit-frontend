@@ -34,7 +34,7 @@ function stateOf(steps: JobStep[], id: string): { state: StepState; detail?: str
 function StepIcon({ state }: { state: StepState }) {
   if (state === "running") return <Spinner className="h-5 w-5 text-indigo-600" />;
   const look: Record<Exclude<StepState, "running">, [string, string]> = {
-    pending: ["border-slate-300 bg-white text-transparent", ""],
+    pending: ["border-slate-300 bg-surface text-transparent", ""],
     done: ["border-emerald-600 bg-emerald-600 text-white", "M5 13l4 4L19 7"],
     skipped: ["border-slate-400 bg-slate-100 text-slate-500", "M6 12h12"],
     failed: ["border-amber-500 bg-amber-100 text-amber-700", "M12 7v6m0 4h.01"],

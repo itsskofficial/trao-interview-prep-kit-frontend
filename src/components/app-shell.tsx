@@ -8,6 +8,7 @@ import { signOut, useSession } from "@/lib/session";
 import { LogoMark } from "./ui/logo";
 import { Button } from "./ui/primitives";
 import { ServerWakingNotice } from "./ui/server-waking";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 const NAV = [
   { href: "/", label: "My kits" },
@@ -21,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-md print:hidden">
+      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-surface/80 backdrop-blur-md print:hidden">
         <div className="mx-auto flex w-full max-w-5xl items-center gap-x-2 px-4 py-3 sm:gap-x-6">
           <Link href="/" className="flex items-center gap-2 rounded-lg font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
             <LogoMark />
@@ -45,7 +46,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             {user && <span className="hidden max-w-[16rem] truncate text-sm text-slate-600 sm:inline">{user.email}</span>}
             <Button size="sm" variant="ghost" onClick={() => void signOut()}>
               Sign out

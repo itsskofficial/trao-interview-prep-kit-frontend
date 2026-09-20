@@ -45,7 +45,7 @@ export function EditableText({ value, onChange, label, placeholder, className, m
       onChange={(event) => onChange(event.target.value)}
       className={clsx(
         "-mx-2 block w-[calc(100%+1rem)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-2 py-1 leading-relaxed placeholder:text-slate-400",
-        "aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/60 hover:border-slate-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60",
+        "aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/60 hover:border-slate-300 focus:border-indigo-500 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
     />

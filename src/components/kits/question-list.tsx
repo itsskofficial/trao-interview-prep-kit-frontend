@@ -22,7 +22,7 @@ interface QuestionListProps {
   onDelete(question: Question): void;
 }
 
-const selectClass = "h-8 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
+const selectClass = "h-8 rounded-md border border-slate-300 bg-surface px-2 text-sm text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600";
 
 /**
  * One category's questions, reorderable by mouse, touch or keyboard (focus the handle, Space to
@@ -87,7 +87,7 @@ function QuestionItem({ question, position, total, requirements, actions, beingR
       data-highlighted={highlighted || undefined}
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={clsx("scroll-mt-32 rounded-2xl border bg-white transition-shadow", highlighted && "ring-2 ring-indigo-400", isDragging ? "relative z-10 border-indigo-400 shadow-lift" : "border-slate-200/80 shadow-card", beingReplaced && "opacity-60")}
+      className={clsx("scroll-mt-32 rounded-2xl border bg-surface transition-shadow", highlighted && "ring-2 ring-indigo-400", isDragging ? "relative z-10 border-indigo-400 shadow-lift" : "border-slate-200/80 shadow-card", beingReplaced && "opacity-60")}
     >
       <div className="flex gap-2 p-3">
         <div className="flex shrink-0 flex-col items-center gap-0.5 pt-1">

@@ -85,7 +85,7 @@ export function BatchUpload() {
           type="file"
           accept="application/json,.json"
           onChange={(event) => void read(event.target.files?.[0])}
-          className="mt-1.5 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-50"
+          className="mt-1.5 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-50"
           aria-describedby={`${inputId}-format`}
         />
         <details id={`${inputId}-format`} className="mt-2 text-sm text-slate-600">

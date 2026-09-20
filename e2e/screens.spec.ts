@@ -3,9 +3,12 @@ import { createKit, register } from "./support";
 
 /** Not assertions: a walk through the app that saves what each screen looks like, for review. Run with SHOTS=1. */
 test.skip(!process.env.SHOTS, "screenshots are only taken on request");
+// SHOTS_THEME=dark takes the same walk in the dark theme; the files get a -dark suffix.
+const DARK = process.env.SHOTS_THEME === "dark";
+test.use({ colorScheme: DARK ? "dark" : "light" });
 
 test("capture the main screens", async ({ page }) => {
-  const shot = (name: string) => page.screenshot({ path: `e2e/shots/${name}.png`, fullPage: true });
+  const shot = (name: string) => page.screenshot({ path: `e2e/shots/${name}${DARK ? "-dark" : ""}.png`, fullPage: true });
 
   await page.goto("/login");
   await shot("01-login");
