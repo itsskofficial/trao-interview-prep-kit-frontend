@@ -9,6 +9,93 @@
   --animate-shimmer: shimmer 1.6s linear infinite;
 }
 
+/* A surface is a role, not a colour. Emitted as a variable so the dark theme can redefine it. */
+@theme {
+  --color-surface: #ffffff;
+}
+
+/*
+ * Dark theme. The components say "slate-600 on a surface", "red-800 on red-50": pairs chosen for contrast in light.
+ * Rather than restate every pair with a dark: variant, the scales themselves are turned over, so every pair keeps its
+ * contrast and a component written tomorrow is dark without anyone remembering to make it so. Solid accents that carry
+ * white text (the 500s and 600s) stay as they are. The accessibility scan runs in both themes and is what keeps this honest.
+ * Screen only: paper is white.
+ */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-surface: #131c2e;
+
+    --color-slate-50: #182238;
+    --color-slate-100: #1e293b;
+    --color-slate-200: #2b384f;
+    --color-slate-300: #3d4b65;
+    --color-slate-400: #64748b;
+    --color-slate-500: #94a3b8;
+    --color-slate-600: #a9b6c9;
+    --color-slate-700: #cbd5e1;
+    --color-slate-800: #e2e8f0;
+    --color-slate-900: #f1f5f9;
+    --color-slate-950: #f8fafc;
+
+    --color-indigo-50: #1e1b4b;
+    --color-indigo-100: #28246b;
+    --color-indigo-200: #3730a3;
+    --color-indigo-300: #4f46e5;
+    --color-indigo-400: #818cf8;
+    --color-indigo-700: #a5b4fc;
+    --color-indigo-800: #c7d2fe;
+    --color-indigo-900: #e0e7ff;
+
+    --color-red-50: #3b1114;
+    --color-red-100: #4c1519;
+    --color-red-200: #7f1d1d;
+    --color-red-700: #fca5a5;
+    --color-red-800: #fecaca;
+    --color-red-900: #fee2e2;
+
+    --color-amber-50: #33240a;
+    --color-amber-100: #42300d;
+    --color-amber-200: #78500f;
+    --color-amber-700: #fcd34d;
+    --color-amber-800: #fde68a;
+    --color-amber-900: #fef3c7;
+
+    --color-emerald-50: #072b22;
+    --color-emerald-100: #0a3a2d;
+    --color-emerald-200: #065f46;
+    --color-emerald-700: #6ee7b7;
+    --color-emerald-800: #a7f3d0;
+    --color-emerald-900: #d1fae5;
+
+    --color-sky-50: #0b2a3d;
+    --color-sky-100: #0e3650;
+    --color-sky-200: #075985;
+    --color-sky-700: #7dd3fc;
+    --color-sky-800: #bae6fd;
+    --color-sky-900: #e0f2fe;
+
+    --color-violet-50: #261a4d;
+    --color-violet-100: #32226a;
+    --color-violet-200: #5b21b6;
+    --color-violet-700: #c4b5fd;
+    --color-violet-800: #ddd6fe;
+    --color-violet-900: #ede9fe;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.35), 0 18px 40px -16px rgb(99 102 241 / 0.45);
+  }
+
+  :root[data-theme="dark"] body {
+    color: #f1f5f9;
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, rgb(99 102 241 / 0.16), transparent 60%),
+      radial-gradient(50rem 28rem at -10% 0%, rgb(14 165 233 / 0.1), transparent 55%),
+      #0b1120;
+    background-attachment: fixed;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;

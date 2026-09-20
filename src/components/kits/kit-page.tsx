@@ -28,7 +28,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 function Tile({ label, value, meter }: { label: string; value: string | number; meter?: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-card">
+    <div className="rounded-2xl border border-slate-200/80 bg-surface px-4 py-3 shadow-card">
       <dd className="text-2xl font-semibold tracking-tight text-slate-900">{value}</dd>
       <dt className="text-xs text-slate-600">{label}</dt>
       {meter !== undefined && (
@@ -110,13 +110,13 @@ export function KitPage({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-3 print:hidden">
           <SaveIndicator state={saveState} error={saveError} onRetry={actions.retrySave} />
-          <a href={`/api/kits/${id}/export`} download className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          <a href={`/api/kits/${id}/export`} download className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-surface px-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
             Download JSON
           </a>
           <Button size="sm" variant="danger" onClick={() => deleteDialog.current?.open()}>
             Delete
           </Button>
-          <Link href={`/kits/${id}/print`} className="inline-flex min-h-8 items-center rounded-md border border-slate-300 bg-white px-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          <Link href={`/kits/${id}/print`} className="inline-flex min-h-8 items-center rounded-md border border-slate-300 bg-surface px-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
             One-page summary
           </Link>
         </div>

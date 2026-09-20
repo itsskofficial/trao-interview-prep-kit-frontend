@@ -9,9 +9,19 @@ import { createKit, register } from "./support";
  */
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"];
 
+/** Clicks a tab and waits until it is the selected one, so the scan that follows is of that tab and not the one being left. */
+async function openTab(page: Page, name: RegExp): Promise<void> {
+  const tab = page.getByRole("tab", { name });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 async function scan(page: Page, screen: string): Promise<void> {
-  // Entry animations fade text in; measuring contrast mid-fade reports colours the user never reads.
-  await page.waitForTimeout(450);
+  // Changing tab changes the address, and the framework answers that by fetching the route again and swapping the document
+  // <title> for an identical one, with a moment in between when there is none. Nobody uses the page in that moment, so the
+  // scan waits for the fetch to finish and the title to be back.
+  await page.waitForLoadState("networkidle");
+  await expect.poll(() => page.locator("head > title").count(), { message: `${screen} never got its title back` }).toBeGreaterThan(0);
   const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const readable = violations.map((violation) => ({
     rule: violation.id,
@@ -22,12 +32,18 @@ async function scan(page: Page, screen: string): Promise<void> {
   expect(readable, `${screen} has accessibility violations`).toEqual([]);
 }
 
-for (const viewport of [
+const SCREENS = [
   { name: "laptop", width: 1280, height: 800 },
   { name: "phone", width: 390, height: 844 },
-]) {
-  test.describe(`accessibility at ${viewport.name} width`, () => {
-    test.use({ viewport: { width: viewport.width, height: viewport.height } });
+];
+// The theme follows the device unless the user has chosen otherwise, so telling the browser the device is dark is enough.
+const VARIANTS = SCREENS.flatMap((viewport) => (["light", "dark"] as const).map((colorScheme) => ({ viewport, colorScheme })));
+
+for (const { viewport, colorScheme } of VARIANTS) {
+  test.describe(`accessibility at ${viewport.name} width, ${colorScheme} theme`, () => {
+    // Entry animations fade text in, and a contrast measurement taken mid-fade reports a colour nobody reads. The app already
+    // honours a request for reduced motion, so the scan makes one; what it measures is then the settled page.
+    test.use({ viewport: { width: viewport.width, height: viewport.height }, colorScheme, contextOptions: { reducedMotion: "reduce" } });
 
     test("signed-out screens", async ({ page }) => {
       await page.goto("/login");
@@ -76,7 +92,7 @@ for (const viewport of [
       await scan(page, "overview tab with the run open");
       await page.getByRole("button", { name: "Hide the run" }).click();
 
-      await page.getByRole("tab", { name: /^Questions/ }).click();
+      await openTab(page, /^Questions/);
       await scan(page, "questions tab");
 
       await page.getByRole("button", { name: /^Regenerate/ }).first().click();
@@ -84,13 +100,13 @@ for (const viewport of [
       await scan(page, "regenerate dialog");
       await page.keyboard.press("Escape");
 
-      await page.getByRole("tab", { name: /^Flashcards/ }).click();
+      await openTab(page, /^Flashcards/);
       await scan(page, "flashcards tab");
 
-      await page.getByRole("tab", { name: /^Schedule/ }).click();
+      await openTab(page, /^Schedule/);
       await scan(page, "schedule tab");
 
-      await page.getByRole("tab", { name: /^Practice/ }).click();
+      await openTab(page, /^Practice/);
       await scan(page, "practice tab");
       await page.getByRole("button", { name: /Start practising/ }).click();
       await scan(page, "practice card");

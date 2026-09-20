@@ -44,7 +44,7 @@ export function KitRunTrace({ kitId, generator }: { kitId: string; generator?: {
           aria-expanded={open}
           aria-controls={panelId}
           onClick={() => setOpen((value) => !value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          className="rounded-lg border border-slate-300 bg-surface px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
           {open ? "Hide the run" : "Show the run"}
         </button>

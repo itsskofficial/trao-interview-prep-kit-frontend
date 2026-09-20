@@ -56,7 +56,7 @@ export function RegenerateButton({ what, label = "Regenerate", replace, keep, wa
       </Button>
 
       {/* A native dialog: focus is trapped, Escape closes it, and focus returns to the button. */}
-      <dialog ref={dialog} className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-slate-900/40" onClose={() => setError(null)}>
+      <dialog ref={dialog} className="m-auto bg-surface text-slate-900 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/50" onClose={() => setError(null)}>
         <div className="space-y-4 p-5">
           <h2 className="text-lg font-semibold">Regenerate {what}?</h2>
           <ul className="space-y-1 text-sm text-slate-700">
@@ -94,10 +94,10 @@ export function UndoToast({ message, onUndo, onDone, paused, onPauseChange }: { 
   }, [onDone, paused]);
 
   return (
-    <div role="status" className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg print:hidden">
+    <div role="status" className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm text-slate-50 shadow-lg print:hidden">
       <span>{message}</span>
       {/* Deleting removed the button that had focus. Focus comes here, and the countdown waits while it stays. */}
-      <button type="button" autoFocus onFocus={() => onPauseChange?.(true)} onBlur={() => onPauseChange?.(false)} onClick={onUndo} className="rounded px-2 py-1 font-semibold text-indigo-200 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+      <button type="button" autoFocus onFocus={() => onPauseChange?.(true)} onBlur={() => onPauseChange?.(false)} onClick={onUndo} className="rounded px-2 py-1 font-semibold text-indigo-200 hover:text-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-50">
         Undo
       </button>
     </div>

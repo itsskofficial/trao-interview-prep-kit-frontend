@@ -20,7 +20,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <Button variant="primary" onClick={reset}>
           Try again
         </Button>
-        <Link href="/" className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+        <Link href="/" className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-surface px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
           My kits
         </Link>
       </div>

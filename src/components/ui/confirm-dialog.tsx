@@ -41,7 +41,7 @@ export function ConfirmDialog({ ref, title, children, confirmLabel, danger, onCo
   }
 
   return (
-    <dialog ref={dialog} onClose={() => setError(null)} className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 p-0 shadow-xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm">
+    <dialog ref={dialog} onClose={() => setError(null)} className="m-auto bg-surface text-slate-900 w-[min(26rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm">
       <div className="space-y-4 p-5">
         <h2 className="text-lg font-semibold">{title}</h2>
         <div className="text-sm leading-relaxed text-slate-700">{children}</div>

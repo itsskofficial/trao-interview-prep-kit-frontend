@@ -140,7 +140,7 @@ export function PracticeTab({ kitId, kit }: { kitId: string; kit: Kit }) {
                       key={option.value}
                       type="button"
                       onClick={() => void rate(option.value)}
-                      className={clsx("rounded-md border bg-white px-3 py-2 text-left text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50", option.classes)}
+                      className={clsx("rounded-md border bg-surface px-3 py-2 text-left text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50", option.classes)}
                     >
                       <kbd className="mr-1.5 rounded bg-slate-100 px-1.5 text-xs text-slate-700">{option.value}</kbd>
                       {option.label}

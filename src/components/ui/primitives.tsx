@@ -7,9 +7,9 @@ const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:o
 
 const BUTTON_VARIANTS = {
   primary: "bg-gradient-to-b from-indigo-500 to-indigo-600 text-white shadow-sm shadow-indigo-600/30 hover:from-indigo-500 hover:to-indigo-700 active:translate-y-px disabled:from-indigo-300 disabled:to-indigo-300 disabled:shadow-none",
-  secondary: "border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:translate-y-px disabled:text-slate-400 disabled:shadow-none",
+  secondary: "border border-slate-200 bg-surface text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:translate-y-px disabled:text-slate-400 disabled:shadow-none",
   ghost: "text-slate-700 hover:bg-slate-100 disabled:text-slate-400",
-  danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50 disabled:text-red-300",
+  danger: "border border-red-200 bg-surface text-red-700 hover:bg-red-50 disabled:text-red-300",
 } as const;
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -40,7 +40,7 @@ export function Button({ variant = "secondary", size = "md", busy = false, class
 }
 
 const fieldBox =
-  "block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 aria-[invalid=true]:border-red-500 " + focusRing;
+  "block w-full rounded-lg border border-slate-200 bg-surface px-3 py-2 text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 aria-[invalid=true]:border-red-500 " + focusRing;
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={clsx(fieldBox, className)} {...rest} />;
@@ -105,7 +105,7 @@ export function Spinner({ className, label }: { className?: string; label?: stri
 }
 
 export function Card({ className, ...rest }: ComponentProps<"section">) {
-  return <section className={clsx("rounded-2xl border border-slate-200/80 bg-white shadow-card", className)} {...rest} />;
+  return <section className={clsx("rounded-2xl border border-slate-200/80 bg-surface shadow-card", className)} {...rest} />;
 }
 
 const BADGE_TONES = {
@@ -128,7 +128,7 @@ export function Badge({ tone = "neutral", children, title }: { tone?: keyof type
 /** What a list shows when there is nothing in it yet. */
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-surface/60 px-6 py-12 text-center">
       <p className="font-medium text-slate-900">{title}</p>
       {children && <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">{children}</p>}
       {action && <div className="mt-4">{action}</div>}

@@ -108,7 +108,7 @@ export function ScheduleTab({ kitId, editor }: { kitId: string; editor: KitEdito
             weeks.length === 1 ? (
               <DayList key={index} days={week} prompts={prompts} focus={focus} replanFrom={replan?.from_day} />
             ) : (
-              <details key={index} open={index === 0} className="rounded-lg border border-slate-200 bg-white">
+              <details key={index} open={index === 0} className="rounded-lg border border-slate-200 bg-surface">
                 <summary className="cursor-pointer rounded-lg px-4 py-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                   Days {week[0]!.day} to {week.at(-1)!.day}
                   <span className="ml-2 font-normal text-slate-600">{week.reduce((sum, day) => sum + day.minutes, 0)} min</span>
@@ -129,7 +129,7 @@ function DayList({ days, prompts, focus, replanFrom }: { days: ScheduleDay[]; pr
   return (
     <ol className="space-y-2">
       {days.map((day) => (
-        <li key={day.day} className="rounded-lg border border-slate-200 bg-white p-4">
+        <li key={day.day} className="rounded-lg border border-slate-200 bg-surface p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="font-semibold text-slate-900">
               Day {day.day}
