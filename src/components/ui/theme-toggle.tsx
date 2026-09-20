@@ -1,17 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { THEME_STORAGE_KEY as KEY } from "@/lib/theme-script";
 
 export type ThemeChoice = "system" | "light" | "dark";
-const KEY = "prep-kit:theme";
 const ORDER: ThemeChoice[] = ["system", "light", "dark"];
 const LABEL: Record<ThemeChoice, string> = { system: "Match my device", light: "Light", dark: "Dark" };
-
-/**
- * Runs before the first paint (see the layout), so a dark-theme visitor never sees a white flash.
- * Kept as a string because it has to execute before React does.
- */
-export const THEME_SCRIPT = `(function(){try{var c=localStorage.getItem(${JSON.stringify(KEY)})||"system";var d=c==="dark"||(c==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light";document.documentElement.dataset.themeChoice=c;}catch(e){document.documentElement.dataset.theme="light";}})();`;
 
 const listeners = new Set<() => void>();
 

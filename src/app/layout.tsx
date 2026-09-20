@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { THEME_SCRIPT } from "@/components/ui/theme-toggle";
+import { THEME_SCRIPT } from "@/lib/theme-script";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -24,10 +24,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     // The theme is set on this element by a script that runs before React, so what the server sent will not match.
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-      </head>
       <body className="min-h-dvh font-sans antialiased">
+        {/* First thing in the body, so it runs before anything is painted. Not in a hand-written <head>: the framework owns
+            that element, and sharing it made the document title flicker out on every navigation. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:shadow">
           Skip to content
         </a>

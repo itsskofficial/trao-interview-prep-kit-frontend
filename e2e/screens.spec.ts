@@ -8,7 +8,7 @@ const DARK = process.env.SHOTS_THEME === "dark";
 test.use({ colorScheme: DARK ? "dark" : "light" });
 
 test("capture the main screens", async ({ page }) => {
-  const shot = (name: string) => page.screenshot({ path: `e2e/shots/${name}${DARK ? "-dark" : ""}.png`, fullPage: true });
+  const shot = (name: string) => page.screenshot({ path: `e2e/shots/${name}${DARK ? "-dark" : ""}.png`, fullPage: true, animations: "disabled" });
 
   await page.goto("/login");
   await shot("01-login");

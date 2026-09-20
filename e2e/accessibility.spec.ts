@@ -10,7 +10,11 @@ import { createKit, register } from "./support";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"];
 
 async function scan(page: Page, screen: string): Promise<void> {
-  await page.waitForTimeout(150);
+  // Changing tab changes the address, and the framework answers that by fetching the route again and swapping the document
+  // <title> for an identical one, with a moment in between when there is none. Nobody uses the page in that moment, so the
+  // scan waits for the fetch to finish and the title to be back.
+  await page.waitForLoadState("networkidle");
+  await expect.poll(() => page.locator("head > title").count(), { message: `${screen} never got its title back` }).toBeGreaterThan(0);
   const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const readable = violations.map((violation) => ({
     rule: violation.id,
