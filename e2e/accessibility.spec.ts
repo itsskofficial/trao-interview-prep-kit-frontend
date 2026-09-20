@@ -69,6 +69,13 @@ for (const viewport of [
       await page.getByRole("heading", { name: "Company brief" }).waitFor();
       await scan(page, "overview tab");
 
+      await page.getByRole("button", { name: "Show the run" }).click();
+      await page.getByText("Total time").waitFor();
+      await page.getByText(/model calls?, /).click();
+      await page.getByText(/fetch(es)?, /).click();
+      await scan(page, "overview tab with the run open");
+      await page.getByRole("button", { name: "Hide the run" }).click();
+
       await page.getByRole("tab", { name: /^Questions/ }).click();
       await scan(page, "questions tab");
 
