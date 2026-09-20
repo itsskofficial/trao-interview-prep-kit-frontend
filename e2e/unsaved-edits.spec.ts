@@ -78,6 +78,8 @@ test("storage that holds nonsense is ignored", async ({ page }) => {
     // The right name with nothing behind it: this used to reach code that expects a list of ids.
     JSON.stringify({ version: 1, savedAt: Date.now(), ops: [{ type: "reorderQuestions" }] }),
     JSON.stringify({ version: 1, savedAt: Date.now(), ops: [{ type: "patchQuestion", id: "q1", patch: { prompt: 42, origin: "user" } }] }),
+    // Dated next year, it would never grow old enough to be dropped.
+    JSON.stringify({ version: 1, savedAt: Date.now() + 365 * 24 * 60 * 60 * 1000, ops: [{ type: "pin", target: { kind: "brief" }, pinned: true }] }),
     "not json at all",
   ]) {
     await page.evaluate(([id, value]) => window.localStorage.setItem(`prep-kit:unsaved:${id}`, value!), [kitId, nonsense] as const);

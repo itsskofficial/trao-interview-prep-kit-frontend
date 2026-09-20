@@ -23,6 +23,8 @@ export interface SaveQueueHandlers {
   onRejected(message: string): void;
   /** Everything not yet confirmed by the server, in order, whenever that changes. What a closed tab would otherwise lose. */
   onPending?(ops: KitOp[]): void;
+  /** Everything owed has been confirmed by a route other than an answer to this queue (the page's exit delivery). */
+  onSettled?(): void;
   /** A recovered change was refused and dropped without fuss. The kit on screen still shows it, so it needs refreshing. */
   onQuietDrop?(): void;
 }
@@ -49,7 +51,8 @@ export class SaveQueue {
 
   /** True when nothing is waiting or in flight, i.e. the server's copy is as new as the user's. */
   get idle(): boolean {
-    return this.pending.length === 0 && !this.sending;
+    // What left through the page's exit is still owed until that delivery reports back.
+    return this.pending.length === 0 && !this.sending && this.leaving.length === 0;
   }
 
   enqueue(op: KitOp, options: { typing?: boolean } = {}): void {
@@ -91,6 +94,11 @@ export class SaveQueue {
     if (index === -1) return;
     this.leaving.splice(index, 1);
     this.changed();
+    // The last thing owed: the server's copy is now as new as the user's, and whoever is showing a local version can drop it.
+    if (this.idle) {
+      this.handlers.onState("saved", null);
+      this.handlers.onSettled?.();
+    }
   }
 
   retry(): void {
@@ -112,7 +120,7 @@ export class SaveQueue {
   private async pump(): Promise<void> {
     if (this.sending) return;
     const next = this.pending[0];
-    if (!next) return this.handlers.onState("saved", null);
+    if (!next) return this.handlers.onState(this.leaving.length > 0 ? "saving" : "saved", null);
 
     const wait = next.notBefore - Date.now();
     if (wait > 0) {

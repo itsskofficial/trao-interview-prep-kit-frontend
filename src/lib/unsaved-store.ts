@@ -12,6 +12,8 @@ const PREFIX = "prep-kit:unsaved:";
 const VERSION = 1;
 /** Changes older than this are dropped: by then the kit has moved on and replaying them would surprise more than help. */
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+/** A record dated in the future would never age out. A minute allows for a clock being corrected between visits. */
+const CLOCK_SLACK_MS = 60_000;
 
 interface Saved {
   version: number;
@@ -93,7 +95,7 @@ export function loadUnsaved(kitId: string, now = Date.now()): KitOp[] {
     const raw = store.getItem(PREFIX + kitId);
     if (!raw) return [];
     const saved = JSON.parse(raw) as Partial<Saved>;
-    const usable = saved.version === VERSION && typeof saved.savedAt === "number" && now - saved.savedAt <= MAX_AGE_MS && Array.isArray(saved.ops) && saved.ops.every(isKitOp);
+    const usable = saved.version === VERSION && typeof saved.savedAt === "number" && Number.isFinite(saved.savedAt) && saved.savedAt <= now + CLOCK_SLACK_MS && now - saved.savedAt <= MAX_AGE_MS && Array.isArray(saved.ops) && saved.ops.every(isKitOp);
     // All or nothing: changes depend on the ones before them, so a list with a hole in it is not the list that was made.
     if (!usable) {
       store.removeItem(PREFIX + kitId);

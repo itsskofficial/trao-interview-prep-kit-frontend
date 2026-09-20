@@ -60,6 +60,7 @@ export function useKitEditor(id: string) {
       onPending: (ops) => saveUnsaved(id, ops),
       // The screen is showing a recovered change the server would not take; the server's kit is the truth.
       onQuietDrop: () => void writeCache(key).then(settle),
+      onSettled: () => void writeCache(key).then(settle),
       onRejected: (message) => {
         setRejected(message);
         void writeCache(key).then(settle);
