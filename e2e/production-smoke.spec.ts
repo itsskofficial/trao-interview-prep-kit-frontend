@@ -46,6 +46,13 @@ test("a real kit, end to end, on the deployed app", async ({ page }) => {
   await page.waitForURL(/\/kits\//, { timeout: 5 * 60_000 });
   await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible({ timeout: 60_000 });
   await shot("overview");
+
+  // What the live pipeline adds that the offline one cannot show: stages quoted from the real page, and a run answered by a real model.
+  await expect(page.getByRole("heading", { name: /How they hire/ })).toBeVisible();
+  await page.getByRole("button", { name: "Show the run" }).click();
+  await expect(page.getByText("Total time")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Answered by (gemini|groq):/)).toBeVisible();
+  await shot("run");
   await page.getByRole("tab", { name: /^Questions/ }).click();
   await page.waitForTimeout(800);
   await shot("questions");
