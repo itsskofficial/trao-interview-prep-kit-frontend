@@ -183,7 +183,8 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
         </ul>
       </Card>
 
-      {stored && <KitRunTrace kitId={stored.id} generator={kit.generator} />}
+      {/* Runs have been recorded for exactly as long as kits have carried a generator stamp, so an older kit gets no panel at all. */}
+      {stored && kit.generator && <KitRunTrace kitId={stored.id} generator={kit.generator} />}
     </div>
   );
 }

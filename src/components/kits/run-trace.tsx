@@ -51,6 +51,10 @@ export function KitRunTrace({ kitId, generator }: { kitId: string; generator?: {
       </div>
 
       <div id={panelId} hidden={!open} className="mt-4">
+        {/* Opening the panel starts a request; someone who cannot see the skeleton is told the same thing in words. */}
+        <p role="status" className="sr-only">
+          {!open ? "" : isLoading ? "Loading the run." : error ? "The run could not be loaded." : data?.trace ? "The run is shown below." : "No run was recorded for this kit."}
+        </p>
         {open && isLoading && <Skeleton className="h-40 w-full" />}
         {open && error && <Alert tone="error">The run could not be loaded: {error.message}</Alert>}
         {open && data && (data.trace ? <RunTraceView trace={data.trace} generator={generator} /> : <p className="text-sm text-slate-600">This kit was made before runs were recorded.</p>)}
