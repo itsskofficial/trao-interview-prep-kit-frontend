@@ -14,6 +14,11 @@ test("capture the main screens", async ({ page }) => {
   await createKit(page);
   await page.getByRole("heading", { name: "Company brief" }).waitFor();
   await shot("05-kit-overview");
+  await page.getByRole("button", { name: "Show the run" }).click();
+  await page.getByText("Total time").waitFor();
+  await page.getByText(/model calls?, /).click();
+  await page.getByRole("region", { name: "How this kit was made" }).screenshot({ path: "e2e/shots/09-run-trace.png" });
+  await page.getByRole("button", { name: "Hide the run" }).click();
 
   for (const tab of ["Questions", "Flashcards", "Schedule", "Practice"]) {
     await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();

@@ -1,13 +1,14 @@
 "use client";
 
 import type { KitEditor } from "@/lib/kit-editor";
-import { isProtected, type ResearchLogEntry } from "@/lib/types";
+import { isProtected, type ResearchEvidence, type ResearchLogEntry } from "@/lib/types";
 import { usePathname } from "next/navigation";
 import { Alert, Badge, Card, Spinner } from "../ui/primitives";
 import { CoverageMap } from "./coverage-map";
 import { EditableText } from "./editable-text";
 import { PinButton, ProvenanceBadges } from "./provenance";
 import { RegenerateButton } from "./regenerate";
+import { KitRunTrace } from "./run-trace";
 
 const OUTCOME_TONE: Record<ResearchLogEntry["outcome"], "emerald" | "neutral" | "amber" | "red"> = { used: "emerald", empty: "neutral", skipped: "amber", failed: "red" };
 const SOURCE_LABEL: Record<string, string> = {
@@ -17,6 +18,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "hacker-news": "Hacker News",
   "stack-exchange-workplace": "Stack Exchange Workplace",
   "public-discussion": "Public discussion",
+  "link-picker": "Link suggestions from the model",
 };
 
 export function OverviewTab({ editor }: { editor: KitEditor }) {
@@ -28,6 +30,7 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
   const running = stored?.regeneration?.status === "running" ? stored.regeneration : null;
   const briefRegenerating = running?.section === "brief";
   const uncovered = kit.role.requirements.filter((requirement) => kit.coverage.uncovered_requirement_ids.includes(requirement.id));
+  const evidenceFor = (claim: string) => (kit.research_evidence ?? []).find((entry) => entry.claim === claim);
   const questionCount = (requirementId: string) => kit.questions.filter((question) => question.requirement_ids.includes(requirementId)).length;
 
   return (
@@ -79,9 +82,12 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
         {(kit.hiring_stages ?? []).length > 0 && (
           <>
             <h3 className="mt-4 text-sm font-semibold text-slate-700">How they hire, as published on their site</h3>
-            <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-slate-800">
+            <ol className="mt-1 list-decimal space-y-1.5 pl-5 text-slate-800">
               {kit.hiring_stages!.map((stage) => (
-                <li key={stage}>{stage}</li>
+                <li key={stage}>
+                  {stage}
+                  <Quoted evidence={evidenceFor(stage)} from="their site" />
+                </li>
               ))}
             </ol>
           </>
@@ -91,7 +97,10 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
             <h3 className="mt-4 text-sm font-semibold text-slate-700">What people say about interviewing there</h3>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-800">
               {kit.interview_insights!.map((insight) => (
-                <li key={insight}>{insight}</li>
+                <li key={insight}>
+                  {insight}
+                  <Quoted evidence={evidenceFor(insight)} from="the discussion" />
+                </li>
               ))}
             </ul>
           </>
@@ -173,6 +182,19 @@ export function OverviewTab({ editor }: { editor: KitEditor }) {
           {(kit.research_log ?? []).length === 0 && <li className="py-2 text-slate-600">No research was recorded for this kit.</li>}
         </ul>
       </Card>
+
+      {stored && <KitRunTrace kitId={stored.id} generator={kit.generator} />}
     </div>
+  );
+}
+
+/** The words a claim rests on, copied from where they were found. Shown so the claim can be checked, not taken on trust. */
+function Quoted({ evidence, from }: { evidence?: ResearchEvidence; from: string }) {
+  if (!evidence || evidence.quote === evidence.claim) return null;
+  return (
+    <span className="mt-0.5 block border-l-2 border-slate-200 pl-2 text-sm text-slate-600">
+      <span className="sr-only">Quoted from {from}: </span>
+      &ldquo;{evidence.quote}&rdquo;
+    </span>
   );
 }

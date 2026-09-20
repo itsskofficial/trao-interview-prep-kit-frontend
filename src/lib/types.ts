@@ -61,7 +61,9 @@ export interface Kit {
   hiring_stages?: string[];
   interview_insights?: string[];
   research_log?: ResearchLogEntry[];
+  research_evidence?: ResearchEvidence[];
   notes?: string[];
+  generator?: { pipeline: string; prompts: string; models: string[] };
 }
 
 export type RegenerationTarget = { section: "brief" } | { section: "questions"; category: QuestionCategory };
@@ -108,6 +110,8 @@ export interface Job {
   error: { code: string; message: string } | null;
   kitId: string | null;
   batchId: string | null;
+  /** Only on a single job, never in a list. Null for a job that ran before runs were traced. */
+  trace?: RunTrace | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -152,3 +156,49 @@ export const CATEGORIES: Array<{ id: QuestionCategory; label: string }> = [
 
 /** The same rule the backend applies: a regeneration never touches a protected item. */
 export const isProtected = (item: Provenance): boolean => item.origin === "user" || item.edited === true || item.pinned === true;
+
+/** The words a hiring stage or interview insight rests on, copied from where they were found. */
+export interface ResearchEvidence {
+  claim: string;
+  quote: string;
+  source: "hiring-page" | "public-discussion";
+  url?: string;
+}
+
+/** What one run of the pipeline did. Holds no prompt, answer or page text. */
+export interface RunTrace {
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  outcome: "ok" | "failed";
+  error?: string;
+  steps: Array<{ step: string; status: "done" | "skipped" | "failed" | "unfinished"; detail?: string; atMs: number; durationMs: number }>;
+  llmCalls: Array<{
+    step: string;
+    provider: string;
+    attempt: number;
+    kind: "answer" | "repair";
+    outcome: string;
+    queuedMs: number;
+    latencyMs: number;
+    usage?: { inputTokens: number; outputTokens: number };
+    error?: string;
+    atMs: number;
+  }>;
+  fetches: Array<{ url: string; accept: string; outcome: string; status?: number; durationMs: number; chars: number; atMs: number }>;
+  decisions: Array<{ step: string; what: string; atMs: number }>;
+  totals: {
+    llmCalls: number;
+    llmMs: number;
+    queuedMs: number;
+    inputTokens: number;
+    outputTokens: number;
+    retries: number;
+    repairs: number;
+    failovers: number;
+    fetches: number;
+    fetchMs: number;
+    pagesRead: number;
+    models: string[];
+  };
+}
