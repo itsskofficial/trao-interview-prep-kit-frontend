@@ -149,7 +149,8 @@ export function KitPage({ id }: { id: string }) {
 
       {restored > 0 && (
         <Alert tone="info" title={restored === 1 ? "One unsaved change was recovered" : `${restored} unsaved changes were recovered`} action={<Button size="sm" onClick={actions.dismissRestored}>Dismiss</Button>}>
-          {restored === 1 ? "It was" : "They were"} made on your last visit and never reached the server, so {restored === 1 ? "it has" : "they have"} been applied and sent now.
+          {restored === 1 ? "It was" : "They were"} made on your last visit and never reached the server. {restored === 1 ? "It has" : "They have"} been applied here and{" "}
+          {saveState === "saved" ? (restored === 1 ? "is now saved." : "are now saved.") : saveState === "failed" ? "will be saved when the connection is back." : "are being saved."}
         </Alert>
       )}
       {rejected && (

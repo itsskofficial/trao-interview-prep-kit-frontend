@@ -23,6 +23,8 @@ export interface SaveQueueHandlers {
   onRejected(message: string): void;
   /** Everything not yet confirmed by the server, in order, whenever that changes. What a closed tab would otherwise lose. */
   onPending?(ops: KitOp[]): void;
+  /** A recovered change was refused and dropped without fuss. The kit on screen still shows it, so it needs refreshing. */
+  onQuietDrop?(): void;
 }
 
 /**
@@ -40,6 +42,8 @@ export class SaveQueue {
   private sending = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private restoredOnce = false;
+  /** Handed to the page's exit delivery, which sends them outside this queue. Unconfirmed until it says otherwise. */
+  private leaving: KitOp[] = [];
 
   constructor(private readonly handlers: SaveQueueHandlers) {}
 
@@ -77,7 +81,16 @@ export class SaveQueue {
   }
 
   private changed(): void {
-    this.handlers.onPending?.(this.pending.map((entry) => entry.op));
+    // What is in flight here and what left through the exit are both unconfirmed, whichever answers first.
+    this.handlers.onPending?.([...this.pending.map((entry) => entry.op), ...this.leaving]);
+  }
+
+  /** The exit delivery reports one of the changes it was handed as dealt with (saved, or refused for good). */
+  delivered(op: KitOp): void {
+    const index = this.leaving.indexOf(op);
+    if (index === -1) return;
+    this.leaving.splice(index, 1);
+    this.changed();
   }
 
   retry(): void {
@@ -89,7 +102,10 @@ export class SaveQueue {
   drain(): KitOp[] {
     if (this.timer) clearTimeout(this.timer);
     const ops = this.pending.slice(this.sending ? 1 : 0).map((entry) => entry.op);
-    this.pending = [];
+    // The one in flight stays: its answer is still coming, and until it does it must stay written down.
+    this.pending = this.sending ? this.pending.slice(0, 1) : [];
+    this.leaving.push(...ops);
+    this.changed();
     return ops;
   }
 
@@ -119,7 +135,8 @@ export class SaveQueue {
       if (error.status === 404 || error.status === 400) {
         this.pending.shift();
         this.changed();
-        if (!next.restored) this.handlers.onRejected(error.message);
+        if (next.restored) this.handlers.onQuietDrop?.();
+        else this.handlers.onRejected(error.message);
       } else {
         return this.handlers.onState("failed", error.message);
       }

@@ -5,7 +5,7 @@ import useSWR, { mutate as writeCache } from "swr";
 import { api, fetcher, type ApiError } from "./api";
 import { applyLocally, toRequest, type KitOp } from "./kit-ops";
 import { SaveQueue, type SaveState } from "./save-queue";
-import { clearUnsaved, loadUnsaved, saveUnsaved } from "./unsaved-store";
+import { loadUnsaved, saveUnsaved } from "./unsaved-store";
 import type { Flashcard, Kit, Question, QuestionCategory, StoredKit } from "./types";
 
 const POLL_WHILE_REGENERATING_MS = 2_000;
@@ -58,6 +58,8 @@ export function useKitEditor(id: string) {
       // Written down as they queue up and crossed off as the server confirms them, so what is in storage is
       // exactly what a closed tab would lose.
       onPending: (ops) => saveUnsaved(id, ops),
+      // The screen is showing a recovered change the server would not take; the server's kit is the truth.
+      onQuietDrop: () => void writeCache(key).then(settle),
       onRejected: (message) => {
         setRejected(message);
         void writeCache(key).then(settle);
@@ -73,7 +75,6 @@ export function useKitEditor(id: string) {
       const ops = queue.drain();
       if (ops.length === 0) return;
       void (async () => {
-        let delivered = true;
         for (const op of ops) {
           const request = toRequest(op);
           const response = await fetch(`/api${key}${request.path}`, {
@@ -83,11 +84,11 @@ export function useKitEditor(id: string) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(request.body ?? {}),
           }).catch(() => undefined);
-          // Refused for good counts as dealt with; no answer at all (offline) does not.
-          if (!response || (!response.ok && response.status !== 400 && response.status !== 404)) delivered = false;
+          // Saved, or refused for good, is dealt with. No answer (offline) or a passing failure is not, and neither is
+          // anything after it: changes are only ever sent in the order they were made. They stay written down.
+          if (!response || (!response.ok && response.status !== 400 && response.status !== 404)) break;
+          queue.delivered(op);
         }
-        // What got through no longer needs remembering. What did not stays written down for the next visit.
-        if (delivered) clearUnsaved(id);
         await writeCache(key);
       })();
     };

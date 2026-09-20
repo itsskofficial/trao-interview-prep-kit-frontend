@@ -53,6 +53,17 @@ test("a recovered change the kit has moved past is dropped quietly", async ({ pa
 
   await expect(page.getByText("All changes saved")).toBeVisible();
   await expect(page.getByText("One change could not be saved")).toHaveCount(0);
+
+  // A recovered change the server refuses must not stay on screen either: it was shown on trust, and the trust was misplaced.
+  await tab(page, "Questions").click();
+  const original = await prompts(page).first().inputValue();
+  const firstId = await page.evaluate(async (id) => ((await (await fetch(`/api/kits/${id}`)).json()) as { kit: { questions: Array<{ id: string; category: string }> } }).kit.questions.find((q) => q.category === "technical")!.id, kitId);
+  await page.evaluate(([id, questionId]) => {
+    window.localStorage.setItem(`prep-kit:unsaved:${id}`, JSON.stringify({ version: 1, savedAt: Date.now(), ops: [{ type: "patchQuestion", id: questionId, patch: { prompt: "" } }] }));
+  }, [kitId, firstId] as const);
+  await page.reload();
+  await tab(page, "Questions").click();
+  await expect(prompts(page).first()).toHaveValue(original);
   expect(await page.evaluate((id) => window.localStorage.getItem(`prep-kit:unsaved:${id}`), kitId)).toBeNull();
 });
 
@@ -62,8 +73,19 @@ test("storage that holds nonsense is ignored", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible();
   const kitId = page.url().split("/kits/")[1]!.split(/[/?#]/)[0]!;
 
-  await page.evaluate((id) => window.localStorage.setItem(`prep-kit:unsaved:${id}`, '{"version":1,"savedAt":"yesterday","ops":[{"type":"dropDatabase"}]}'), kitId);
-  await page.reload();
+  for (const nonsense of [
+    '{"version":1,"savedAt":"yesterday","ops":[{"type":"dropDatabase"}]}',
+    // The right name with nothing behind it: this used to reach code that expects a list of ids.
+    JSON.stringify({ version: 1, savedAt: Date.now(), ops: [{ type: "reorderQuestions" }] }),
+    JSON.stringify({ version: 1, savedAt: Date.now(), ops: [{ type: "patchQuestion", id: "q1", patch: { prompt: 42, origin: "user" } }] }),
+    "not json at all",
+  ]) {
+    await page.evaluate(([id, value]) => window.localStorage.setItem(`prep-kit:unsaved:${id}`, value!), [kitId, nonsense] as const);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible();
+    await expect(page.getByText(/recovered/)).toHaveCount(0);
+    expect(await page.evaluate((id) => window.localStorage.getItem(`prep-kit:unsaved:${id}`), kitId)).toBeNull();
+  }
 
   await expect(page.getByRole("heading", { name: "Company brief" })).toBeVisible();
   await expect(page.getByText(/recovered/)).toHaveCount(0);
